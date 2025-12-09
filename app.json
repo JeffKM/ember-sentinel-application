@@ -1,0 +1,116 @@
+{
+  "expo": {
+    "name": "Ember Sentinel",
+    "slug": "ember-sentinel",
+    "owner": "jeffkm",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FF3B30"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.embersentinel.app",
+      "infoPlist": {
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "com.googleusercontent.apps.363707859922-lfm90hb25bt36kknep506kvd2jhr0pp2",
+              "com.embersentinel.app"
+            ]
+          },
+          {
+            "CFBundleURLSchemes": [
+              "kakaoad897badbdd2fe79b295c0a88f55b5ab"
+            ]
+          }
+        ],
+        "CFBundleAllowMixedLocalizations": true,
+        "KAKAO_APP_KEY": "***REMOVED_KAKAO_KEY***",
+        "LSApplicationQueriesSchemes": [
+          "kakaokompassauth",
+          "storykompassauth",
+          "kakaolink"
+        ],
+        "NSAppTransportSecurity": {
+          "NSExceptionDomains": {
+            "exp.direct": {
+              "NSIncludesSubdomains": true,
+              "NSExceptionAllowsInsecureHTTPLoads": true
+            }
+          }
+        }
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FF3B30"
+      },
+      "package": "com.embersentinel.app",
+      "googleServicesFile": "./google-services.json",  // [중요 1] 이 파일이 프로젝트 루트에 있어야 합니다!
+      "usesCleartextTraffic": true,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "com.googleusercontent.apps.363707859922-e0qpumjd4g2sl99m0fq2ucipuh30c1kb"
+            },
+            {
+              "scheme": "com.embersentinel.app"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#FF3B30",
+          "sounds": []
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "extraMavenRepos": [
+              "https://devrepo.kakao.com/nexus/content/groups/public/"
+            ]
+          }
+        }
+      ],
+      [
+        "@react-native-kakao/core",
+        {
+          "nativeAppKey": "***REMOVED_KAKAO_KEY***",
+          "android": {
+            "authCodeHandlerActivity": true
+          },
+          "ios": {
+            "handleKakaoOpenUrl": true
+          }
+        }
+      ]
+    ],
+    "notification": {
+      "icon": "./assets/icon.png",
+      "color": "#FF3B30"
+    }
+  }
+}
