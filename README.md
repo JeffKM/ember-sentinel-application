@@ -13,6 +13,33 @@
 - **소셜 로그인**: Google 및 Kakao 계정을 통한 간편 인증
 - **오프라인 모드**: 네트워크 미연결 시에도 기본 기능 접근 가능
 
+## 스크린샷
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="docs/screenshots/푸쉬알림화면.png" width="200" />
+      <br /><b>푸시 알림</b>
+      <br /><sub>화재 감지 시 실시간 푸시 알림 수신</sub>
+    </td>
+    <td align="center">
+      <img src="docs/screenshots/홈%20화면.png" width="200" />
+      <br /><b>화재 경보 상세</b>
+      <br /><sub>위치, 시간, 위험도 등 상세 정보 확인</sub>
+    </td>
+    <td align="center">
+      <img src="docs/screenshots/실시간cctv.png" width="200" />
+      <br /><b>CCTV 실시간 영상</b>
+      <br /><sub>현장 카메라 실시간 스트리밍</sub>
+    </td>
+    <td align="center">
+      <img src="docs/screenshots/건물평면도.png" width="200" />
+      <br /><b>건물 평면도</b>
+      <br /><sub>층별 평면도에서 화재 발생 위치 확인</sub>
+    </td>
+  </tr>
+</table>
+
 ## 기술 스택
 
 - **Framework**: React Native 0.81, Expo 54 (New Architecture)
