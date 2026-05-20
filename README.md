@@ -19,6 +19,7 @@
 - [시스템 아키텍처](#시스템-아키텍처)
 - [레포지토리 구성](#레포지토리-구성)
 - [기술 스택](#기술-스택)
+- [데모 영상](#데모-영상)
 - [스크린샷](#스크린샷)
 - [시작하기](#시작하기)
 - [모바일 앱 상세](#모바일-앱-상세)
@@ -182,6 +183,46 @@ graph LR
 | CI/CD       | GitHub Actions + OIDC → ECR → SSM 배포                 |
 | Container   | Docker (멀티스테이지 빌드)                             |
 | PaaS (대안) | Render / Railway 배포 설정 포함                        |
+
+---
+
+## 데모 영상
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="docs/demos/login-demo.gif" width="250" />
+      <br /><b>소셜 로그인</b>
+      <br /><sub>Google/Kakao 로그인 → 홈 화면 진입</sub>
+    </td>
+    <td align="center">
+      <img src="docs/demos/fire-alert-demo.gif" width="250" />
+      <br /><b>화재 알림</b>
+      <br /><sub>푸시 알림 수신 → 화재 상세 화면</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="docs/demos/cctv-live-demo.gif" width="250" />
+      <br /><b>CCTV 실시간</b>
+      <br /><sub>WebRTC 실시간 스트리밍 시청</sub>
+    </td>
+    <td align="center">
+      <img src="docs/demos/full-flow-demo.gif" width="250" />
+      <br /><b>전체 플로우</b>
+      <br /><sub>화재 감지 → 알림 → CCTV → 위치 확인</sub>
+    </td>
+  </tr>
+</table>
+
+> GIF 녹화 방법은 아래 명령어를 참고하세요:
+>
+> ```bash
+> # iOS 시뮬레이터 녹화
+> xcrun simctl io booted recordVideo demo.mp4
+> # MP4 → GIF 변환 (ffmpeg)
+> ffmpeg -i demo.mp4 -vf "fps=15,scale=300:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 demo.gif
+> ```
 
 ---
 
@@ -416,6 +457,7 @@ ember-sentinel/
 │   ├── adr/                      # Architecture Decision Records (8개)
 │   ├── diagrams/                 # Mermaid 다이어그램 (3개)
 │   ├── api/                      # Postman Collection
+│   ├── demos/                    # 데모 GIF 영상 (4개)
 │   ├── screenshots/              # 앱 스크린샷
 │   ├── PRD.md                    # 프로젝트 요구사항 정의서
 │   ├── ROADMAP.md                # 개발 로드맵
