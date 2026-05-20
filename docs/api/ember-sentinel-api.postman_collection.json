@@ -1,0 +1,464 @@
+{
+  "info": {
+    "name": "Ember Sentinel API",
+    "description": "Ember Sentinel 화재 감지 시스템 백엔드 API 컬렉션.\n\nSwagger UI: http://localhost:8080/swagger-ui/index.html\n\n## 인증\n- JWT Bearer Token: `Authorization: Bearer <token>`\n- 엣지 디바이스 API Key: `X-Device-API-Key: <key>`\n\n## 환경 변수\n- `base_url`: API 서버 주소 (기본: http://localhost:8080)\n- `access_token`: JWT Access Token\n- `refresh_token`: JWT Refresh Token\n- `device_api_key`: 엣지 디바이스 API Key",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "device_api_key",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth (인증)",
+      "description": "소셜 로그인 및 JWT 토큰 관리",
+      "item": [
+        {
+          "name": "Google 로그인",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accessToken\": \"google_oauth2_access_token\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/google",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "google"]
+            },
+            "description": "Google OAuth2 Access Token으로 로그인. 서버가 userToken(JWT), refreshToken, 사용자 정보를 반환합니다."
+          },
+          "response": []
+        },
+        {
+          "name": "Kakao 로그인",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accessToken\": \"kakao_oauth2_access_token\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/kakao",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "kakao"]
+            },
+            "description": "Kakao OAuth2 Access Token으로 로그인."
+          },
+          "response": []
+        },
+        {
+          "name": "이메일 로그인",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/email",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "email"]
+            },
+            "description": "이메일/비밀번호 로그인."
+          },
+          "response": []
+        },
+        {
+          "name": "JWT 토큰 갱신",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/token/refresh",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "token", "refresh"]
+            },
+            "description": "Refresh Token으로 새로운 Access Token과 Refresh Token을 발급받습니다. Refresh Token Rotation 적용 — 사용된 토큰은 블랙리스트에 추가되며, 재사용 감지 시 전체 토큰이 무효화됩니다."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "User (사용자)",
+      "description": "사용자 정보 조회 및 FCM 토큰 관리",
+      "item": [
+        {
+          "name": "사용자 정보 조회",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/user/info",
+              "host": ["{{base_url}}"],
+              "path": ["user", "info"]
+            },
+            "description": "현재 로그인한 사용자의 정보(email, nickname, profileImageUrl, userRole, authType)를 조회합니다."
+          },
+          "response": []
+        },
+        {
+          "name": "FCM 토큰 등록",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fcmToken\": \"firebase_cloud_messaging_token\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user/fcm/token",
+              "host": ["{{base_url}}"],
+              "path": ["user", "fcm", "token"]
+            },
+            "description": "Firebase Cloud Messaging 토큰을 서버에 등록합니다. 화재 감지 시 이 토큰으로 푸시 알림이 전송됩니다."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Room (방 관리)",
+      "description": "방 CRUD 및 멤버십 관리",
+      "item": [
+        {
+          "name": "내 방 목록 조회",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/room/list/me?page=0&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["room", "list", "me"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "현재 사용자가 속한 방 목록을 페이징으로 조회합니다."
+          },
+          "response": []
+        },
+        {
+          "name": "방 상세 조회",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/room/1/detail",
+              "host": ["{{base_url}}"],
+              "path": ["room", "1", "detail"]
+            },
+            "description": "방의 상세 정보 — 멤버 목록, 등록된 카메라, 최근 화재 이벤트 상태를 조회합니다."
+          },
+          "response": []
+        },
+        {
+          "name": "방 생성",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roomAlias\": \"서버실\",\n  \"buildingId\": 1,\n  \"buildingLocationFloor\": 3,\n  \"roomNumber\": \"301\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/room",
+              "host": ["{{base_url}}"],
+              "path": ["room"]
+            },
+            "description": "새로운 방을 생성합니다. 생성자는 자동으로 EDITOR 권한을 부여받습니다."
+          },
+          "response": []
+        },
+        {
+          "name": "카메라 등록",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceUuid\": \"rpi5-cam-001\",\n  \"cameraEdgeAlias\": \"서버실 카메라 1\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/room/1/camera-edge",
+              "host": ["{{base_url}}"],
+              "path": ["room", "1", "camera-edge"]
+            },
+            "description": "방에 엣지 카메라 디바이스를 등록합니다."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Fire Event (화재 이벤트)",
+      "description": "화재 이벤트 발행, 스트리밍, 녹화 관리",
+      "item": [
+        {
+          "name": "화재 이벤트 발행 (엣지 디바이스)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Device-API-Key",
+                "value": "{{device_api_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cameraEdgeId\": 1,\n  \"detectionType\": \"FIRE\",\n  \"fireCause\": \"전기 합선 추정\",\n  \"riskRank\": 4\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/embedded/fire-event/publish",
+              "host": ["{{base_url}}"],
+              "path": ["embedded", "fire-event", "publish"]
+            },
+            "description": "엣지 디바이스가 화재/연기 감지 시 호출하는 API. X-Device-API-Key 헤더로 인증합니다.\n\n서버 동작:\n1. FireEvent 생성\n2. LiveKit Room 생성 + Egress 녹화 시작\n3. FCM 비동기 푸시 알림\n4. LiveKit Token 반환\n\ndetectionType: FIRE | SMOKE\nriskRank: 1(낮음) ~ 5(매우 높음)\n\nRate Limit: 디바이스당 1분 1회"
+          },
+          "response": []
+        },
+        {
+          "name": "CCTV 라이브 시청 토큰",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/fire-event/1/stream/subscribe",
+              "host": ["{{base_url}}"],
+              "path": ["fire-event", "1", "stream", "subscribe"]
+            },
+            "description": "화재 이벤트의 실시간 CCTV 영상을 시청하기 위한 LiveKit 토큰을 발급합니다. 이 토큰으로 LiveKit SFU 서버에 WebRTC 연결하여 영상을 수신합니다."
+          },
+          "response": []
+        },
+        {
+          "name": "녹화 영상 URL 조회",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/fire-event/1/record",
+              "host": ["{{base_url}}"],
+              "path": ["fire-event", "1", "record"]
+            },
+            "description": "화재 이벤트의 녹화 영상 S3 Presigned URL을 조회합니다. URL은 1시간 동안 유효합니다."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Monitoring (모니터링)",
+      "description": "Spring Boot Actuator 메트릭 및 헬스 체크",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/actuator/health",
+              "host": ["{{base_url}}"],
+              "path": ["actuator", "health"]
+            },
+            "description": "애플리케이션 헬스 상태 (DB, Redis, 디스크 포함)."
+          },
+          "response": []
+        },
+        {
+          "name": "Application Info",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/actuator/info",
+              "host": ["{{base_url}}"],
+              "path": ["actuator", "info"]
+            },
+            "description": "애플리케이션 정보 (이름, 버전, 설명)."
+          },
+          "response": []
+        },
+        {
+          "name": "Metrics 목록",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/actuator/metrics",
+              "host": ["{{base_url}}"],
+              "path": ["actuator", "metrics"]
+            },
+            "description": "사용 가능한 메트릭 이름 목록."
+          },
+          "response": []
+        },
+        {
+          "name": "HTTP 요청 메트릭 (P50/P95/P99)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/actuator/metrics/http.server.requests",
+              "host": ["{{base_url}}"],
+              "path": ["actuator", "metrics", "http.server.requests"]
+            },
+            "description": "HTTP 요청 응답 시간 메트릭. Micrometer 퍼센타일 히스토그램으로 P50/P95/P99 확인 가능."
+          },
+          "response": []
+        },
+        {
+          "name": "Prometheus 메트릭",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/actuator/prometheus",
+              "host": ["{{base_url}}"],
+              "path": ["actuator", "prometheus"]
+            },
+            "description": "Prometheus 스크레이핑용 메트릭 엔드포인트."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "LiveKit Webhook",
+      "description": "LiveKit 서버 → API 서버 Webhook (참고용)",
+      "item": [
+        {
+          "name": "LiveKit Webhook 수신",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer livekit_webhook_token"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/webhook+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"participant_joined\",\n  \"room\": {\n    \"name\": \"fire-event-1\"\n  },\n  \"participant\": {\n    \"identity\": \"edge-rpi5-001\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/livekit/webhook",
+              "host": ["{{base_url}}"],
+              "path": ["livekit", "webhook"]
+            },
+            "description": "LiveKit 서버가 호출하는 Webhook 엔드포인트 (참고용).\n\n처리하는 이벤트:\n- participant_joined: 스트리밍 상태 → LIVE\n- participant_disconnected: 스트리밍 상태 → ENDED + Room 삭제\n- egress_ended: S3 녹화 경로를 MediaRecord에 저장"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

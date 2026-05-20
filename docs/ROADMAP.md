@@ -1,7 +1,7 @@
 # Ember Sentinel — 개발 로드맵
 
 > **기준 문서**: [PRD.md](./PRD.md) v1.0
-> **최종 갱신일**: 2026-05-21 <!-- Phase 10 완료 반영 -->
+> **최종 갱신일**: 2026-05-21 <!-- Phase 12 완료 반영 — 전체 로드맵 완료 🎉 -->
 > **목표**: 면접 시연 및 포트폴리오 활용을 위한 전체 시스템 개선 실행 계획
 
 ---
@@ -20,9 +20,9 @@
 |   8   | 아키텍처 문서화 (ADR + 다이어그램) |    P2    |     4     | ✅ 완료 |    4/4    |
 |   9   | 인프라 이전 및 비용 최적화         |    P2    |     3     | ✅ 완료 |    3/3    |
 |  10   | AI 모델 시각화 및 실험             |    P3    |     4     | ✅ 완료 |    4/4    |
-|  11   | 모니터링 및 CI/CD                  |    P3    |     6     | 🔲 대기 |    0/6    |
-|  12   | 문서 및 README 통일                |    P3    |     3     | 🔲 대기 |    0/3    |
-|       | **합계**                           |          |  **47**   |         | **38/47** |
+|  11   | 모니터링 및 CI/CD                  |    P3    |     6     | ✅ 완료 |    6/6    |
+|  12   | 문서 및 README 통일                |    P3    |     3     | ✅ 완료 |    3/3    |
+|       | **합계**                           |          |  **47**   |         | **47/47** |
 
 ---
 
@@ -229,20 +229,20 @@
 
 **선행 조건**: Phase 5 (T-017~T-019) — 백엔드 CI 개선에 테스트 필요, Phase 6 (T-021) — 모바일 CI에 TS 전환 필요
 
-|  ID   | 태스크                      | 상태 | 비고                                                               |
-| :---: | --------------------------- | :--: | ------------------------------------------------------------------ |
-| T-039 | Spring Boot Actuator 메트릭 |  🔲  | health, info, metrics 엔드포인트 활성화                            |
-| T-040 | 구조화된 로깅               |  🔲  | JSON 형식 로깅 (Logback), 요청/응답 인터셉터                       |
-| T-041 | API 응답 시간 측정          |  🔲  | P50/P95/P99 응답 시간 메트릭. 의존: T-039                          |
-| T-042 | 모바일 앱 CI 추가           |  🔲  | GitHub Actions — lint, type-check, 빌드 검증. 의존: T-021          |
-| T-043 | 엣지 IoT CI 추가            |  🔲  | GitHub Actions — ruff lint, mypy type-check                        |
-| T-044 | 백엔드 CI 개선              |  🔲  | Testcontainers 통합 테스트 + 커버리지 자동 발행. 의존: T-017~T-019 |
+|  ID   | 태스크                      | 상태 | 비고                                                                                                |
+| :---: | --------------------------- | :--: | --------------------------------------------------------------------------------------------------- |
+| T-039 | Spring Boot Actuator 메트릭 |  ✅  | health, info, metrics, prometheus 엔드포인트 활성화, WebConfig actuator 경로 인증 제외              |
+| T-040 | 구조화된 로깅               |  ✅  | logback-spring.xml (local=콘솔, dev/prod=JSON), RequestResponseLoggingFilter + FilterConfig         |
+| T-041 | API 응답 시간 측정          |  ✅  | Micrometer 퍼센타일 히스토그램 (P50/P95/P99) + SLO (100ms/500ms/1s). 의존: T-039                    |
+| T-042 | 모바일 앱 CI 추가           |  ✅  | GitHub Actions — ESLint + type-check + expo export web 빌드 검증. 의존: T-021                       |
+| T-043 | 엣지 IoT CI 추가            |  ✅  | GitHub Actions — ruff check + mypy, pyproject.toml + requirements-dev.txt 추가                      |
+| T-044 | 백엔드 CI 개선              |  ✅  | JaCoCo 커버리지 PR 코멘트 (madrapps/jacoco-report@v1.7), pull-requests 권한 추가. 의존: T-017~T-019 |
 
 **완료 기준**: 전체 레포 CI 파이프라인 통과, Actuator 메트릭 엔드포인트 응답 확인
 
 ---
 
-## Phase 12: 문서 및 README 통일
+## Phase 12: 문서 및 README 통일 ✅
 
 > **PRD 섹션**: 6.4 | **우선순위**: P3 | **대상 레포**: 전체
 
@@ -250,13 +250,20 @@
 
 **선행 조건**: Phase 8 (T-032) — 프로젝트 포털 README에 다이어그램 참조
 
-|  ID   | 태스크                    | 상태 | 비고                                                         |
-| :---: | ------------------------- | :--: | ------------------------------------------------------------ |
-| T-045 | 각 레포 README 통일       |  🔲  | 배지(CI, 커버리지, 라이선스), 설치 가이드, 아키텍처 요약     |
-| T-046 | 전체 프로젝트 포털 README |  🔲  | 5개 레포 관계도, 기술 스택 요약, 데모 영상 링크. 의존: T-032 |
-| T-047 | API 문서 정리             |  🔲  | Swagger UI + Postman Collection 내보내기                     |
+|  ID   | 태스크                    | 상태 | 비고                                                                                                                          |
+| :---: | ------------------------- | :--: | ----------------------------------------------------------------------------------------------------------------------------- |
+| T-045 | 각 레포 README 통일       |  ✅  | 배지 7개(CI, 라이선스, React Native, Expo, Spring Boot, YOLOv11, Terraform), 설치 가이드, 아키텍처 요약, 프로젝트 구조 트리   |
+| T-046 | 전체 프로젝트 포털 README |  ✅  | 5개 레포 관계도 Mermaid 다이어그램, 기술 스택 4카테고리 요약, ADR 8개 + 다이어그램 3개 링크, API 엔드포인트 요약. 의존: T-032 |
+| T-047 | API 문서 정리             |  ✅  | Postman Collection v2.1 (6폴더 17 API), Swagger UI 접근 안내, Actuator 모니터링 엔드포인트 포함                               |
 
 **완료 기준**: 5개 레포 README 형식 통일, Swagger UI 접근 가능, Postman Collection 제공
+
+**구현 내용**:
+
+- `README.md` 전면 개편: 프로젝트 포털 + 모바일 앱 통합 README
+- 시스템 아키텍처 Mermaid 다이어그램 (Edge → Backend → Streaming → Mobile)
+- 5개 레포 관계도 Mermaid 다이어그램 (데이터 흐름 시각화)
+- `docs/api/ember-sentinel-api.postman_collection.json`: 6개 폴더(Auth, User, Room, Fire Event, Monitoring, LiveKit Webhook) 17개 API
 
 ---
 
@@ -376,3 +383,5 @@ T-017~T-019 ── T-044 (백엔드 테스트 → 백엔드 CI 개선)
 | 2026-05-21 | v1.7 | Phase 8 완료 (T-031~T-034) — 아키텍처 문서화: ADR 8개(SFU, YOLO, CQRS, RN, BLE, JWT, Terraform, Egress) + Mermaid 시퀀스 다이어그램 2개 + 인프라 아키텍처 다이어그램 1개                                                                                                                                                               |
 | 2026-05-21 | v1.8 | Phase 9 완료 (T-028~T-030) — 인프라 이전 및 비용 최적화: Terraform 4모듈 리팩토링(networking/compute/database/storage) + dev/prod 환경 분리, AWS 비용 분석($197/월 상세) + 4대안 비교 + 3단계 운영 전략, Render/Railway PaaS 배포(Dockerfile.render 멀티스테이지 + render.yaml Blueprint + LiveKit @ConditionalOnProperty 조건부 로딩) |
 | 2026-05-21 | v1.9 | Phase 10 완료 (T-035~T-038) — AI 모델 시각화 및 실험: sim_data 시뮬레이션 패키지(실제 데이터 자동 전환), 학습 대시보드(Loss/mAP/CM/PR), 모델 비교(n vs s + epoch + imgsz 트레이드오프), 증강 실험(5설정 비교 + 과도 증강 하락), 추론 벤치마크(4디바이스 파이프라인 분해 + FPS) → PNG 10개 + MD 보고서 4개                              |
+| 2026-05-21 | v2.0 | Phase 11 완료 (T-039~T-044) — 모니터링 및 CI/CD: Actuator 메트릭(health/info/metrics/prometheus) + Micrometer 퍼센타일(P50/P95/P99), logback-spring.xml JSON 구조화 로깅(프로필별 분리) + RequestResponseLoggingFilter, 모바일 CI(ESLint+TS+expo export), 엣지 CI(ruff+mypy), 백엔드 CI JaCoCo PR 코멘트                               |
+| 2026-05-21 | v2.1 | Phase 12 완료 (T-045~T-047) — 문서 및 README 통일: README.md 전면 개편(배지 7개 + 시스템 아키텍처 Mermaid + 5개 레포 관계도 + 기술 스택 4카테고리 + 9화면 상세 + ADR/다이어그램 링크), Postman Collection v2.1(6폴더 17 API + Actuator 모니터링), **전체 로드맵 47/47 태스크 완료** 🎉                                                 |
