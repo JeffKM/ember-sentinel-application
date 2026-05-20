@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getRoomDetail, addUserToRoom, removeUserFromRoom, addCameraToRoom, removeCameraFromRoom } from '../config/api';
+import { getDemoRoomDetail } from '../data/demoData';
 
 export default function RoomDetailScreen({ route, navigation }) {
   const { room } = route.params;
@@ -64,66 +65,8 @@ export default function RoomDetailScreen({ route, navigation }) {
 
   const loadRoomDetail = async () => {
     if (isOfflineMode) {
-      // 오프라인 모드일 때는 샘플 데이터 사용
-      setRoomDetail({
-        roomId: room.roomId || 1,
-        roomAlias: room.roomAlias || room.name || 'A동 3층 305호',
-        buildingName: room.buildingName || 'A동',
-        floor: room.floor || '3F',
-        roomNumber: room.roomNumber || '305',
-        members: [
-          {
-            userId: 1,
-            nickname: '박인성',
-            email: 'park@example.com',
-            profileImageUrl: null,
-            role: 'ADMIN',
-          },
-          {
-            userId: 2,
-            nickname: '이정빈',
-            email: 'lee@example.com',
-            profileImageUrl: null,
-            role: 'EDITOR',
-          },
-          {
-            userId: 3,
-            nickname: '조현준',
-            email: 'jo@example.com',
-            profileImageUrl: null,
-            role: 'VIEWER',
-          },
-        ],
-        cameras: [
-          {
-            cameraId: 1,
-            deviceUuid: null,
-            cameraEdgeAlias: '카메라 1',
-            locationFloor: '3F',
-            roomNumber: '305',
-            isFireOccurring: false,
-            fireEventId: null,
-          },
-          {
-            cameraId: 2,
-            deviceUuid: null,
-            cameraEdgeAlias: '카메라 2',
-            locationFloor: '3F',
-            roomNumber: '305',
-            isFireOccurring: true,
-            fireEventId: 123,
-          },
-          {
-            cameraId: 3,
-            deviceUuid: null,
-            cameraEdgeAlias: '카메라 3',
-            locationFloor: '3F',
-            roomNumber: '305',
-            isFireOccurring: false,
-            fireEventId: null,
-          },
-        ],
-      });
+      // 오프라인 모드일 때는 데모 데이터 사용
+      setRoomDetail(getDemoRoomDetail(room.roomId));
       setIsLoading(false);
       return;
     }

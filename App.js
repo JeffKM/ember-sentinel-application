@@ -16,6 +16,7 @@ import FireEventVideoScreen from './src/screens/FireEventVideoScreen';
 
 // Import FCM functions
 import { initializeFCMToken, setupNotificationListeners } from './src/config/firebase';
+import { sendFireSimulationNotification } from './src/utils/pushNotification';
 
 const Stack = createStackNavigator();
 
@@ -156,6 +157,16 @@ export default function App() {
         navigate: function(screen, params) { if (navigationRef.current) navigationRef.current.navigate(screen, params); },
         goBack: function() { if (navigationRef.current) navigationRef.current.goBack(); },
         getState: function() { return JSON.stringify({ isLoggedIn: isLoggedIn, userRole: userRole, navState: navigationRef.current ? navigationRef.current.getState() : null }); },
+        simulateFire: async function() {
+          var simData = await sendFireSimulationNotification();
+          console.log('🔥 화재 시뮬레이션 발생:', simData.room.roomAlias);
+          setTimeout(function() {
+            if (navigationRef.current) {
+              navigationRef.current.navigate('FireAlertDetail', { camera: simData.camera, room: simData.room });
+            }
+          }, 3000);
+          return simData;
+        },
       };
     }
   }, [isLoggedIn, userRole]);

@@ -1,7 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// API 기본 설정
-export const API_BASE_URL = 'http://ec2-35-94-89-39.us-west-2.compute.amazonaws.com:8080';
+// API 기본 설정 — 환경 변수로 오버라이드 가능
+export const API_BASE_URL =
+  process.env.EXPO_PUBLIC_API_BASE_URL ||
+  'http://ec2-35-94-89-39.us-west-2.compute.amazonaws.com:8080';
 
 // 공통 요청 함수
 export const apiRequest = async (endpoint, options = {}) => {

@@ -2,6 +2,7 @@
  * 간단한 네트워크 테스트 유틸리티
  * expo start 환경에서도 작동하도록 설계
  */
+import { API_BASE_URL } from '../config/api';
 
 /**
  * 기본 네트워크 연결 테스트
@@ -32,7 +33,7 @@ export const testBasicNetwork = async () => {
  * 서버 연결 테스트
  */
 export const testServerConnection = async () => {
-  const serverUrl = 'http://ec2-35-94-89-39.us-west-2.compute.amazonaws.com:8080';
+  const serverUrl = API_BASE_URL;
   
   try {
     console.log('🔗 서버 연결 테스트 중...');

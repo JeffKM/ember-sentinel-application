@@ -1,20 +1,67 @@
-import React from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
   TouchableOpacity,
   SafeAreaView,
-  StatusBar 
+  StatusBar
 } from 'react-native';
+import { DEMO_VIDEO_SOURCES } from '../data/demoData';
+
+// expo-video 를 동적 import — 로드 실패 시 정적 목업으로 폴백
+let VideoView = null;
+let useVideoPlayer = null;
+try {
+  const expoVideo = require('expo-video');
+  VideoView = expoVideo.VideoView;
+  useVideoPlayer = expoVideo.useVideoPlayer;
+} catch (e) {
+  console.log('expo-video 로드 실패, 정적 목업으로 폴백');
+}
+
+// 비디오 사용 가능 여부
+const canPlayVideo = VideoView && useVideoPlayer && DEMO_VIDEO_SOURCES.cctvLive;
+
+function VideoPlayer({ source }) {
+  const player = useVideoPlayer(source, (p) => {
+    p.loop = true;
+    p.play();
+  });
+
+  return (
+    <VideoView
+      player={player}
+      style={StyleSheet.absoluteFill}
+      contentFit="cover"
+      nativeControls={false}
+    />
+  );
+}
 
 export default function CCTVLiveScreen({ route, navigation }) {
   const { camera, room } = route.params;
+  const [videoError, setVideoError] = useState(false);
+
+  const cameraName = camera.cameraEdgeAlias || camera.name || '카메라';
+  const locationText = `${camera.locationFloor || room?.floor || ''} ${camera.roomNumber || ''}`.trim();
+
+  // 현재 시각 표시
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatDate = (d) => `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+  const formatTime = (d) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
+
+  const showVideo = canPlayVideo && !videoError;
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
-      
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -22,7 +69,7 @@ export default function CCTVLiveScreen({ route, navigation }) {
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>CCTV 실시간 영상</Text>
-          <Text style={styles.headerSubtitle}>3층 동쪽 복도</Text>
+          <Text style={styles.headerSubtitle}>{locationText}</Text>
         </View>
         <View style={styles.liveBadge}>
           <View style={styles.liveDot} />
@@ -32,22 +79,26 @@ export default function CCTVLiveScreen({ route, navigation }) {
 
       {/* Video Area */}
       <View style={styles.videoContainer}>
+        {showVideo ? (
+          <VideoPlayer source={DEMO_VIDEO_SOURCES.cctvLive} />
+        ) : (
+          /* 정적 목업 폴백 */
+          <View style={styles.fireWarning}>
+            <View style={styles.fireWarningIcon}>
+              <Text style={styles.warningSymbol}>⚠️</Text>
+            </View>
+            <View>
+              <Text style={styles.fireWarningTitle}>{cameraName}</Text>
+              <Text style={styles.fireWarningSubtitle}>실시간 스트리밍 중...</Text>
+            </View>
+          </View>
+        )}
+
         {/* Video Info Overlay */}
         <View style={styles.videoInfo}>
-          <Text style={styles.videoInfoText}>2025.09.30{'\n'}14:34:22</Text>
-          <Text style={styles.videoInfoText}>CAM-A302</Text>
-          <Text style={styles.videoInfoText}>3F East</Text>
-        </View>
-
-        {/* Fire Warning Alert */}
-        <View style={styles.fireWarning}>
-          <View style={styles.fireWarningIcon}>
-            <Text style={styles.warningSymbol}>⚠️</Text>
-          </View>
-          <View>
-            <Text style={styles.fireWarningTitle}>카메라 #{camera.cameraEdgeAlias || camera.name || '1'}</Text>
-            <Text style={styles.fireWarningSubtitle}>실시간 스트리밍 중...</Text>
-          </View>
+          <Text style={styles.videoInfoText}>{formatDate(now)}{'\n'}{formatTime(now)}</Text>
+          <Text style={styles.videoInfoText}>{camera.deviceUuid || 'CAM-DEMO'}</Text>
+          <Text style={styles.videoInfoText}>{locationText}</Text>
         </View>
       </View>
 

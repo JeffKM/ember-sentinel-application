@@ -29,6 +29,7 @@
     "expo-linking": "~8.0.9",
     "expo-notifications": "^0.32.13",
     "expo-status-bar": "~3.0.8",
+    "expo-video": "~3.0.16",
     "expo-web-browser": "~15.0.9",
     "firebase": "^12.6.0",
     "react": "19.1.0",

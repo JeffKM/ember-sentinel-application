@@ -1,25 +1,20 @@
 import React from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
   TouchableOpacity,
   SafeAreaView,
-  StatusBar 
+  StatusBar
 } from 'react-native';
+import { getDemoFireEvents } from '../data/demoData';
 
 export default function FireEventHistoryScreen({ route, navigation }) {
   const { camera, room } = route.params;
 
-  // 샘플 화재 이벤트 데이터
-  const fireEvents = [
-    { id: 1, date: '2025-10-30 14:32:15' },
-    { id: 2, date: '2025-10-28 09:15:42' },
-    { id: 3, date: '2025-10-25 16:48:23' },
-    { id: 4, date: '2025-10-22 11:20:56' },
-    { id: 5, date: '2025-10-18 13:05:31' },
-  ];
+  // 데모 데이터에서 카메라별 화재 이벤트 가져오기
+  const fireEvents = getDemoFireEvents(camera?.cameraId);
 
   return (
     <SafeAreaView style={styles.container}>

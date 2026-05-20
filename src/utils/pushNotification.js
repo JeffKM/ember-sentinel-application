@@ -1,4 +1,5 @@
 import * as Notifications from 'expo-notifications';
+import { simulateFireEvent } from '../data/demoData';
 
 /**
  * 테스트용 로컬 알림 전송
@@ -69,3 +70,36 @@ export const sendPushNotification = async (expoPushToken, title, body, data = {}
   }
 };
 
+/**
+ * 화재 감지 시뮬레이션 알림 전송
+ * 데모 데이터에서 랜덤 이벤트를 생성하여 로컬 알림을 발송한다.
+ * 반환값의 simData를 사용해 알림 후 화면 이동에 활용할 수 있다.
+ */
+export const sendFireSimulationNotification = async () => {
+  const simData = simulateFireEvent();
+
+  try {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: '🔥 화재 감지!',
+        body: `${simData.room.roomAlias}에서 ${simData.event.detectionType}`,
+        subtitle: `위험 등급: ${simData.event.riskLevel}`,
+        data: {
+          type: 'fire_alert',
+          roomId: simData.room.roomId,
+          room: simData.room.roomAlias,
+          cameraId: simData.camera.cameraId,
+          camera: simData.camera,
+          simData,
+        },
+        sound: true,
+        priority: Notifications.AndroidNotificationPriority.HIGH,
+      },
+      trigger: null,
+    });
+  } catch (error) {
+    console.error('시뮬레이션 알림 전송 실패:', error);
+  }
+
+  return simData;
+};

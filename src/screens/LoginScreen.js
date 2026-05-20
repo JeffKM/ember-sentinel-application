@@ -9,6 +9,7 @@ import { login as kakaoSDKLogin, me as getKakaoProfile } from '@react-native-kak
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import { GOOGLE_CONFIG, KAKAO_CONFIG } from '../config/socialLogin';
+import { API_BASE_URL } from '../config/api';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -167,12 +168,12 @@ export default function LoginScreen({ onLogin }) {
               onPress: async () => {
                 try {
                   console.log('📤 서버로 토큰 전송 중...');
-                  console.log('🌐 서버 URL:', 'http://ec2-35-94-89-39.us-west-2.compute.amazonaws.com:8080/auth/google');
-                  
+                  console.log('🌐 서버 URL:', `${API_BASE_URL}/auth/google`);
+
                   const controller = new AbortController();
                   const timeoutId = setTimeout(() => controller.abort(), 8000);
-                  
-                  const response = await fetch('http://ec2-35-94-89-39.us-west-2.compute.amazonaws.com:8080/auth/google', {
+
+                  const response = await fetch(`${API_BASE_URL}/auth/google`, {
                     method: 'POST',
                     headers: {
                       'accept': '*/*',
@@ -337,7 +338,7 @@ export default function LoginScreen({ onLogin }) {
                   const controller = new AbortController();
                   const timeoutId = setTimeout(() => controller.abort(), 8000);
                   
-                  const response = await fetch('http://ec2-35-94-89-39.us-west-2.compute.amazonaws.com:8080/auth/kakao', {
+                  const response = await fetch(`${API_BASE_URL}/auth/kakao`, {
                     method: 'POST',
                     headers: {
                       'accept': '*/*',

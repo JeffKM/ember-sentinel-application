@@ -1,21 +1,72 @@
-import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
+import React, { useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
   TouchableOpacity,
   SafeAreaView,
-  StatusBar 
+  StatusBar
 } from 'react-native';
+import { DEMO_VIDEO_SOURCES } from '../data/demoData';
+
+// expo-video 동적 import — 로드 실패 시 정적 목업으로 폴백
+let VideoView = null;
+let useVideoPlayer = null;
+try {
+  const expoVideo = require('expo-video');
+  VideoView = expoVideo.VideoView;
+  useVideoPlayer = expoVideo.useVideoPlayer;
+} catch (e) {
+  console.log('expo-video 로드 실패, 정적 목업으로 폴백');
+}
+
+const canPlayVideo = VideoView && useVideoPlayer && DEMO_VIDEO_SOURCES.fireEvent;
+
+function EventVideoPlayer({ source, isPlaying, onToggle }) {
+  const player = useVideoPlayer(source, (p) => {
+    p.loop = true;
+  });
+
+  // play/pause 동기화
+  React.useEffect(() => {
+    if (isPlaying) {
+      player.play();
+    } else {
+      player.pause();
+    }
+  }, [isPlaying, player]);
+
+  return (
+    <TouchableOpacity
+      style={StyleSheet.absoluteFill}
+      activeOpacity={0.9}
+      onPress={onToggle}
+    >
+      <VideoView
+        player={player}
+        style={StyleSheet.absoluteFill}
+        contentFit="cover"
+        nativeControls={false}
+      />
+    </TouchableOpacity>
+  );
+}
 
 export default function FireEventVideoScreen({ route, navigation }) {
   const { event, camera, room } = route.params;
   const [isPlaying, setIsPlaying] = useState(false);
 
+  const handleTogglePlay = useCallback(() => {
+    setIsPlaying((prev) => !prev);
+  }, []);
+
+  const cameraName = camera.cameraEdgeAlias || camera.name || '카메라';
+  const showVideo = canPlayVideo;
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
-      
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -23,7 +74,7 @@ export default function FireEventVideoScreen({ route, navigation }) {
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>화재 이벤트 영상</Text>
-          <Text style={styles.headerSubtitle}>{camera.cameraEdgeAlias || camera.name || '카메라'} · 201호 중앙</Text>
+          <Text style={styles.headerSubtitle}>{cameraName} · {room?.roomAlias || '구역'}</Text>
         </View>
         <TouchableOpacity style={styles.downloadButton}>
           <Text style={styles.downloadText}>⬇︎ 녹화 영상</Text>
@@ -32,41 +83,49 @@ export default function FireEventVideoScreen({ route, navigation }) {
 
       {/* Video Area */}
       <View style={styles.videoContainer}>
+        {showVideo ? (
+          <EventVideoPlayer
+            source={DEMO_VIDEO_SOURCES.fireEvent}
+            isPlaying={isPlaying}
+            onToggle={handleTogglePlay}
+          />
+        ) : (
+          /* 정적 목업 폴백 */
+          <View style={styles.fireWarning}>
+            <View style={styles.fireWarningIcon}>
+              <Text style={styles.warningSymbol}>⚠️</Text>
+            </View>
+            <View>
+              <Text style={styles.fireWarningTitle}>{cameraName}</Text>
+              <Text style={styles.fireWarningSubtitle}>화재 감지 녹화 영상</Text>
+            </View>
+          </View>
+        )}
+
         {/* Video Info Overlay */}
         <View style={styles.videoInfo}>
           <View style={styles.videoInfoLeft}>
             <Text style={styles.videoInfoIcon}>🕐</Text>
             <Text style={styles.videoInfoText}>{event.date}</Text>
           </View>
-          <Text style={styles.videoInfoText}>{camera.cameraEdgeAlias || camera.name || '카메라'}</Text>
-        </View>
-
-        {/* Fire Warning Alert */}
-        <View style={styles.fireWarning}>
-          <View style={styles.fireWarningIcon}>
-            <Text style={styles.warningSymbol}>⚠️</Text>
-          </View>
-          <View>
-            <Text style={styles.fireWarningTitle}>{camera.cameraEdgeAlias || camera.name || '카메라'}</Text>
-            <Text style={styles.fireWarningSubtitle}>화재 감지 녹화 영상</Text>
-          </View>
+          <Text style={styles.videoInfoText}>{cameraName}</Text>
         </View>
       </View>
 
       {/* Video Controls */}
       <View style={styles.controls}>
         <View style={styles.progressBar}>
-          <Text style={styles.timeText}>0:32</Text>
+          <Text style={styles.timeText}>0:00</Text>
           <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: '20%' }]} />
+            <View style={[styles.progressFill, { width: isPlaying ? '50%' : '0%' }]} />
             <View style={styles.progressThumb} />
           </View>
           <Text style={styles.timeText}>2:15</Text>
         </View>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.playButton}
-          onPress={() => setIsPlaying(!isPlaying)}
+          onPress={handleTogglePlay}
         >
           <Text style={styles.playIcon}>{isPlaying ? '❚❚' : '▶'}</Text>
         </TouchableOpacity>

@@ -55,7 +55,7 @@
         "backgroundColor": "#FF3B30"
       },
       "package": "com.embersentinel.app",
-      "googleServicesFile": "./google-services.json",  // [중요 1] 이 파일이 프로젝트 루트에 있어야 합니다!
+      "googleServicesFile": "./google-services.json",
       "usesCleartextTraffic": true,
       "intentFilters": [
         {
@@ -68,7 +68,10 @@
               "scheme": "com.embersentinel.app"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -106,7 +109,8 @@
             "handleKakaoOpenUrl": true
           }
         }
-      ]
+      ],
+      "expo-video"
     ],
     "notification": {
       "icon": "./assets/icon.png",

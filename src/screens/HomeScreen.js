@@ -18,6 +18,8 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { runNetworkDiagnostics } from '../utils/networkTest';
 import { getRoomData, getBuildingList, createRoom, deleteRoom } from '../config/api';
+import { getDemoRoomData, getDemoBuildings } from '../data/demoData';
+import { sendFireSimulationNotification } from '../utils/pushNotification';
 
 export default function HomeScreen({ navigation, onLogout, userRole }) {
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
@@ -73,32 +75,8 @@ export default function HomeScreen({ navigation, onLogout, userRole }) {
 
   const loadRoomData = async () => {
     if (isOfflineMode) {
-      // 오프라인 모드일 때는 샘플 데이터 사용
-      setRoomData({
-        totalRoomCount: 2,
-        totalCameraCount: 6,
-        liveStreamCount: 1,
-        roomList: [
-          {
-            roomId: 1,
-            roomAlias: 'A동 3층 305호',
-            buildingName: 'A동',
-            floor: '3F',
-            roomNumber: '305',
-            cameraCountPerRoom: 3,
-            fireEventCountPerRoom: 1,
-          },
-          {
-            roomId: 2,
-            roomAlias: 'B동 2층 201호',
-            buildingName: 'B동',
-            floor: '2F',
-            roomNumber: '201',
-            cameraCountPerRoom: 3,
-            fireEventCountPerRoom: 0,
-          },
-        ],
-      });
+      // 오프라인 모드일 때는 데모 데이터 사용
+      setRoomData(getDemoRoomData());
       setIsLoading(false);
       return;
     }
@@ -223,11 +201,8 @@ export default function HomeScreen({ navigation, onLogout, userRole }) {
   // 빌딩 목록 로딩
   const loadBuildingList = async () => {
     if (isOfflineMode) {
-      // 오프라인 모드일 때는 샘플 데이터
-      setBuildingList([
-        { id: 1, buildingName: 'A동' },
-        { id: 2, buildingName: 'B동' },
-      ]);
+      // 오프라인 모드일 때는 데모 데이터
+      setBuildingList(getDemoBuildings());
       return;
     }
 
@@ -252,10 +227,7 @@ export default function HomeScreen({ navigation, onLogout, userRole }) {
             text: '확인',
             onPress: () => {
               setIsOfflineMode(true);
-              setBuildingList([
-                { id: 1, buildingName: 'A동' },
-                { id: 2, buildingName: 'B동' },
-              ]);
+              setBuildingList(getDemoBuildings());
             }
           }
         ]
@@ -483,14 +455,31 @@ export default function HomeScreen({ navigation, onLogout, userRole }) {
             <Text style={styles.offlineNoticeSubText}>
               서버 연결이 복구되면 새로고침해주세요
             </Text>
-            {__DEV__ && (
-              <TouchableOpacity 
-                style={styles.networkTestButton}
-                onPress={handleNetworkTest}
+            <View style={styles.offlineButtonsRow}>
+              {__DEV__ && (
+                <TouchableOpacity
+                  style={styles.networkTestButton}
+                  onPress={handleNetworkTest}
+                >
+                  <Text style={styles.networkTestButtonText}>네트워크 테스트</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                style={styles.fireSimButton}
+                onPress={async () => {
+                  const simData = await sendFireSimulationNotification();
+                  // 3초 후 FireAlertDetail 화면으로 자동 이동
+                  setTimeout(() => {
+                    navigation.navigate('FireAlertDetail', {
+                      camera: simData.camera,
+                      room: simData.room,
+                    });
+                  }, 3000);
+                }}
               >
-                <Text style={styles.networkTestButtonText}>네트워크 테스트</Text>
+                <Text style={styles.fireSimButtonText}>🔥 화재 감지 시뮬레이션</Text>
               </TouchableOpacity>
-            )}
+            </View>
           </View>
         )}
 
@@ -845,15 +834,30 @@ const styles = StyleSheet.create({
     color: '#856404',
     opacity: 0.8,
   },
-  networkTestButton: {
+  offlineButtonsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
     marginTop: 12,
+  },
+  networkTestButton: {
     backgroundColor: '#007AFF',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,
-    alignSelf: 'flex-start',
   },
   networkTestButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  fireSimButton: {
+    backgroundColor: '#FF3B30',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  fireSimButtonText: {
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '600',
