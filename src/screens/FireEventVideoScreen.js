@@ -23,7 +23,7 @@ export default function FireEventVideoScreen({ route, navigation }) {
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>화재 이벤트 영상</Text>
-          <Text style={styles.headerSubtitle}>{camera.name} · 201호 중앙</Text>
+          <Text style={styles.headerSubtitle}>{camera.cameraEdgeAlias || camera.name || '카메라'} · 201호 중앙</Text>
         </View>
         <TouchableOpacity style={styles.downloadButton}>
           <Text style={styles.downloadText}>⬇︎ 녹화 영상</Text>
@@ -38,7 +38,7 @@ export default function FireEventVideoScreen({ route, navigation }) {
             <Text style={styles.videoInfoIcon}>🕐</Text>
             <Text style={styles.videoInfoText}>{event.date}</Text>
           </View>
-          <Text style={styles.videoInfoText}>{camera.name}</Text>
+          <Text style={styles.videoInfoText}>{camera.cameraEdgeAlias || camera.name || '카메라'}</Text>
         </View>
 
         {/* Fire Warning Alert */}
@@ -47,7 +47,7 @@ export default function FireEventVideoScreen({ route, navigation }) {
             <Text style={styles.warningSymbol}>⚠️</Text>
           </View>
           <View>
-            <Text style={styles.fireWarningTitle}>{camera.name}</Text>
+            <Text style={styles.fireWarningTitle}>{camera.cameraEdgeAlias || camera.name || '카메라'}</Text>
             <Text style={styles.fireWarningSubtitle}>화재 감지 녹화 영상</Text>
           </View>
         </View>

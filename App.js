@@ -23,6 +23,7 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState(null);
+  const navigationRef = React.useRef(null);
 
   useEffect(() => {
     checkLoginStatus();
@@ -146,12 +147,25 @@ export default function App() {
     setIsLoggedIn(false);
   };
 
+  // DEV 테스트 헬퍼 (CDP에서 호출 가능)
+  React.useEffect(function() {
+    if (__DEV__) {
+      globalThis.__emberTest = {
+        login: function(role) { handleLogin('test-token', role, { email: role.toLowerCase() + '@test.com', nickname: role, provider: 'test', isOfflineMode: true }); },
+        logout: function() { handleLogout(); },
+        navigate: function(screen, params) { if (navigationRef.current) navigationRef.current.navigate(screen, params); },
+        goBack: function() { if (navigationRef.current) navigationRef.current.goBack(); },
+        getState: function() { return JSON.stringify({ isLoggedIn: isLoggedIn, userRole: userRole, navState: navigationRef.current ? navigationRef.current.getState() : null }); },
+      };
+    }
+  }, [isLoggedIn, userRole]);
+
   if (isLoading) {
     return <SplashScreen />;
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!isLoggedIn ? (
           <Stack.Screen name="Login">

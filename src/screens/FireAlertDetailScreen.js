@@ -41,13 +41,13 @@ export default function FireAlertDetailScreen({ route, navigation }) {
 
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>구역</Text>
-            <Text style={styles.infoValue}>{room.name.split(' ')[2]}</Text>
+            <Text style={styles.infoValue}>{room.roomAlias || room.name || '구역'}</Text>
           </View>
 
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>카메라</Text>
             <View style={styles.cameraInfo}>
-              <Text style={styles.infoValue}>{camera.name}</Text>
+              <Text style={styles.infoValue}>{camera.cameraEdgeAlias || camera.name || '카메라'}</Text>
               <View style={styles.dangerBadge}>
                 <Text style={styles.dangerBadgeText}>화재</Text>
               </View>
@@ -56,7 +56,7 @@ export default function FireAlertDetailScreen({ route, navigation }) {
 
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>위치</Text>
-            <Text style={styles.infoValue}>{camera.location}</Text>
+            <Text style={styles.infoValue}>{camera.locationFloor || camera.location || '-'}</Text>
           </View>
 
           <View style={styles.infoRow}>

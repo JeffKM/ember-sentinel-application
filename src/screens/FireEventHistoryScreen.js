@@ -32,7 +32,7 @@ export default function FireEventHistoryScreen({ route, navigation }) {
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>화재 이벤트 기록</Text>
-          <Text style={styles.headerSubtitle}>{camera.name} · 201호 중앙</Text>
+          <Text style={styles.headerSubtitle}>{camera.cameraEdgeAlias || camera.name || '카메라'} · 201호 중앙</Text>
         </View>
         <View style={{ width: 40 }} />
       </View>
@@ -41,7 +41,7 @@ export default function FireEventHistoryScreen({ route, navigation }) {
       <View style={styles.infoBar}>
         <View style={styles.infoItem}>
           <Text style={styles.infoLabel}>구역</Text>
-          <Text style={styles.infoValue}>{room.name}</Text>
+          <Text style={styles.infoValue}>{room.roomAlias || room.name || '구역'}</Text>
         </View>
         <View style={styles.infoDivider} />
         <View style={styles.infoItem}>

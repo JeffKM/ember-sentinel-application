@@ -45,7 +45,7 @@ export default function CCTVLiveScreen({ route, navigation }) {
             <Text style={styles.warningSymbol}>⚠️</Text>
           </View>
           <View>
-            <Text style={styles.fireWarningTitle}>카메라 #{camera.name.split(' ')[1]}</Text>
+            <Text style={styles.fireWarningTitle}>카메라 #{camera.cameraEdgeAlias || camera.name || '1'}</Text>
             <Text style={styles.fireWarningSubtitle}>실시간 스트리밍 중...</Text>
           </View>
         </View>
