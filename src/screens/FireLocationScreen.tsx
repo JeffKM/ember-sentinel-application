@@ -21,7 +21,14 @@ type Props = StackScreenProps<RootStackParamList, 'FireLocation'>;
 
 export default function FireLocationScreen({ route, navigation }: Props) {
   const { camera, room } = route.params;
-  const [selectedFloor, setSelectedFloor] = useState('3층');
+
+  // 카메라 데이터에서 화재 층/호실 추출
+  const fireFloorRaw = camera?.locationFloor || room?.floor || '3F';
+  const fireFloorNum = fireFloorRaw.replace('F', '');
+  const fireRoomNumber = camera?.roomNumber || room?.roomNumber || '305';
+  const initialFloor = `${fireFloorNum}층`;
+
+  const [selectedFloor, setSelectedFloor] = useState(initialFloor);
 
   const floors = ['1층', '2층', '3층', '4층', '5층', '6층'];
 
@@ -38,7 +45,7 @@ export default function FireLocationScreen({ route, navigation }: Props) {
       {
         id: `${startRoom + 4}`,
         name: `${startRoom + 4}호`,
-        hasFire: selectedFloor === '3층' && `${startRoom + 4}호` === '305호',
+        hasFire: `${startRoom + 4}` === fireRoomNumber,
       },
       { id: `${startRoom + 5}`, name: `${startRoom + 5}호`, hasFire: false },
     ];
@@ -59,7 +66,9 @@ export default function FireLocationScreen({ route, navigation }: Props) {
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>건물 평면도</Text>
           <Text style={styles.headerSubtitle}>
-            {selectedFloor === '3층' ? '3층 305호 화재 발생' : `${selectedFloor} 평면도`}
+            {selectedFloor === initialFloor
+              ? `${initialFloor} ${fireRoomNumber}호 화재 발생`
+              : `${selectedFloor} 평면도`}
           </Text>
         </View>
         <View style={{ width: 40 }} />
@@ -128,7 +137,7 @@ export default function FireLocationScreen({ route, navigation }: Props) {
               <Text style={styles.alertBadgeText}>화재 지점</Text>
             </View>
             <Text style={styles.fireAlertMessage}>
-              {selectedFloor} 복도에서 화재가 발생했습니다.
+              {initialFloor} {fireRoomNumber}호에서 화재가 발생했습니다.
             </Text>
           </View>
         )}

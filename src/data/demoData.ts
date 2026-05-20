@@ -30,7 +30,7 @@ export const DEMO_ROOMS: Room[] = [
     floor: '1F',
     roomNumber: '101',
     cameraCountPerRoom: 2,
-    fireEventCountPerRoom: 1,
+    fireEventCountPerRoom: 0,
   },
   {
     roomId: 2,
@@ -39,7 +39,7 @@ export const DEMO_ROOMS: Room[] = [
     floor: '3F',
     roomNumber: '305',
     cameraCountPerRoom: 2,
-    fireEventCountPerRoom: 0,
+    fireEventCountPerRoom: 1,
   },
   {
     roomId: 3,
@@ -183,8 +183,8 @@ const DEMO_CAMERAS: Record<number, Camera[]> = {
       cameraEdgeAlias: '서버실 입구 캠',
       locationFloor: '1F',
       roomNumber: '101',
-      isFireOccurring: true,
-      fireEventId: 1001,
+      isFireOccurring: false,
+      fireEventId: null,
     },
     {
       cameraId: 2,
@@ -203,8 +203,8 @@ const DEMO_CAMERAS: Record<number, Camera[]> = {
       cameraEdgeAlias: '회의실 전면 캠',
       locationFloor: '3F',
       roomNumber: '305',
-      isFireOccurring: false,
-      fireEventId: null,
+      isFireOccurring: true,
+      fireEventId: 1001,
     },
     {
       cameraId: 4,
@@ -265,14 +265,14 @@ export const DEMO_FIRE_EVENTS: FireEvent[] = [
   {
     id: 1,
     date: '2026-05-21 14:32:15',
-    cameraId: 1,
+    cameraId: 3,
     detectionType: '연기 감지',
     riskLevel: '높음',
   },
   {
     id: 2,
     date: '2026-05-19 09:15:42',
-    cameraId: 1,
+    cameraId: 3,
     detectionType: '화염 감지',
     riskLevel: '매우 높음',
   },
@@ -286,7 +286,7 @@ export const DEMO_FIRE_EVENTS: FireEvent[] = [
   {
     id: 4,
     date: '2026-05-12 11:20:56',
-    cameraId: 2,
+    cameraId: 4,
     detectionType: '온도 이상',
     riskLevel: '높음',
   },
@@ -307,14 +307,14 @@ export const DEMO_FIRE_EVENTS: FireEvent[] = [
   {
     id: 7,
     date: '2026-04-20 22:17:03',
-    cameraId: 1,
+    cameraId: 3,
     detectionType: '연기 감지',
     riskLevel: '높음',
   },
   {
     id: 8,
     date: '2026-04-15 15:33:29',
-    cameraId: 4,
+    cameraId: 1,
     detectionType: '온도 이상',
     riskLevel: '보통',
   },

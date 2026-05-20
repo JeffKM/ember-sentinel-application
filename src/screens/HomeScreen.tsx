@@ -47,6 +47,7 @@ export default function HomeScreen({ navigation, onLogout, userRole }: HomeScree
   const [buildingList, setBuildingList] = useState<Building[]>([]);
   const [isBuildingSelectVisible, setIsBuildingSelectVisible] = useState<boolean>(false);
   const [isOfflineMode, setIsOfflineMode] = useState<boolean>(false);
+  const [offlineModeChecked, setOfflineModeChecked] = useState<boolean>(false);
   const [userInfo, setUserInfo] = useState<{
     email: string | null;
     nickname: string | null;
@@ -78,18 +79,22 @@ export default function HomeScreen({ navigation, onLogout, userRole }: HomeScree
         } else {
           setIsOfflineMode(false);
         }
+        setOfflineModeChecked(true);
       } catch (error) {
         console.error('사용자 정보 로드 오류:', error);
+        setOfflineModeChecked(true);
       }
     };
 
     loadUserInfo();
   }, []);
 
-  // Room 데이터 로딩
+  // Room 데이터 로딩 (오프라인 모드 확인 완료 후)
   useEffect(() => {
-    loadRoomData();
-  }, [isOfflineMode]);
+    if (offlineModeChecked) {
+      loadRoomData();
+    }
+  }, [offlineModeChecked, isOfflineMode]);
 
   const loadRoomData = async () => {
     if (isOfflineMode) {

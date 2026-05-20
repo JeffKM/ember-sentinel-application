@@ -46,6 +46,7 @@ export default function RoomDetailScreen({ route, navigation }: RoomDetailScreen
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [isOfflineMode, setIsOfflineMode] = useState<boolean>(false);
+  const [offlineModeChecked, setOfflineModeChecked] = useState<boolean>(false);
   const [isSubmittingMember, setIsSubmittingMember] = useState<boolean>(false);
 
   // 오프라인 모드 확인
@@ -60,19 +61,23 @@ export default function RoomDetailScreen({ route, navigation }: RoomDetailScreen
         } else {
           setIsOfflineMode(false);
         }
+        setOfflineModeChecked(true);
       } catch (error) {
         console.error('오프라인 모드 확인 오류:', error);
         setIsOfflineMode(true);
+        setOfflineModeChecked(true);
       }
     };
 
     checkOfflineMode();
   }, []);
 
-  // Room 세부 정보 로딩
+  // Room 세부 정보 로딩 (오프라인 모드 확인 완료 후)
   useEffect(() => {
-    loadRoomDetail();
-  }, [room.roomId, isOfflineMode]);
+    if (offlineModeChecked) {
+      loadRoomDetail();
+    }
+  }, [room.roomId, offlineModeChecked, isOfflineMode]);
 
   const loadRoomDetail = async () => {
     if (isOfflineMode) {
