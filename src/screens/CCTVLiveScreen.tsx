@@ -1,17 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  SafeAreaView,
-  StatusBar
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar } from 'react-native';
+import type { StackScreenProps } from '@react-navigation/stack';
+import type { RootStackParamList } from '../types';
 import { DEMO_VIDEO_SOURCES } from '../data/demoData';
 
 // expo-video 를 동적 import — 로드 실패 시 정적 목업으로 폴백
-let VideoView = null;
-let useVideoPlayer = null;
+let VideoView: React.ComponentType<any> | null = null;
+let useVideoPlayer: ((source: any, setup?: (player: any) => void) => any) | null = null;
 try {
   const expoVideo = require('expo-video');
   VideoView = expoVideo.VideoView;
@@ -23,14 +18,19 @@ try {
 // 비디오 사용 가능 여부
 const canPlayVideo = VideoView && useVideoPlayer && DEMO_VIDEO_SOURCES.cctvLive;
 
-function VideoPlayer({ source }) {
-  const player = useVideoPlayer(source, (p) => {
+interface VideoPlayerProps {
+  source: number;
+}
+
+function VideoPlayer({ source }: VideoPlayerProps) {
+  const player = useVideoPlayer!(source, (p: any) => {
     p.loop = true;
     p.play();
   });
 
+  const VideoViewComponent = VideoView!;
   return (
-    <VideoView
+    <VideoViewComponent
       player={player}
       style={StyleSheet.absoluteFill}
       contentFit="cover"
@@ -39,12 +39,15 @@ function VideoPlayer({ source }) {
   );
 }
 
-export default function CCTVLiveScreen({ route, navigation }) {
+type Props = StackScreenProps<RootStackParamList, 'CCTVLive'>;
+
+export default function CCTVLiveScreen({ route, navigation }: Props) {
   const { camera, room } = route.params;
   const [videoError, setVideoError] = useState(false);
 
-  const cameraName = camera.cameraEdgeAlias || camera.name || '카메라';
-  const locationText = `${camera.locationFloor || room?.floor || ''} ${camera.roomNumber || ''}`.trim();
+  const cameraName = camera.cameraEdgeAlias || '카메라';
+  const locationText =
+    `${camera.locationFloor || room?.floor || ''} ${camera.roomNumber || ''}`.trim();
 
   // 현재 시각 표시
   const [now, setNow] = useState(new Date());
@@ -53,8 +56,10 @@ export default function CCTVLiveScreen({ route, navigation }) {
     return () => clearInterval(timer);
   }, []);
 
-  const formatDate = (d) => `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
-  const formatTime = (d) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
+  const formatDate = (d: Date): string =>
+    `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+  const formatTime = (d: Date): string =>
+    `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
 
   const showVideo = canPlayVideo && !videoError;
 
@@ -80,7 +85,7 @@ export default function CCTVLiveScreen({ route, navigation }) {
       {/* Video Area */}
       <View style={styles.videoContainer}>
         {showVideo ? (
-          <VideoPlayer source={DEMO_VIDEO_SOURCES.cctvLive} />
+          <VideoPlayer source={DEMO_VIDEO_SOURCES.cctvLive!} />
         ) : (
           /* 정적 목업 폴백 */
           <View style={styles.fireWarning}>
@@ -96,7 +101,11 @@ export default function CCTVLiveScreen({ route, navigation }) {
 
         {/* Video Info Overlay */}
         <View style={styles.videoInfo}>
-          <Text style={styles.videoInfoText}>{formatDate(now)}{'\n'}{formatTime(now)}</Text>
+          <Text style={styles.videoInfoText}>
+            {formatDate(now)}
+            {'\n'}
+            {formatTime(now)}
+          </Text>
           <Text style={styles.videoInfoText}>{camera.deviceUuid || 'CAM-DEMO'}</Text>
           <Text style={styles.videoInfoText}>{locationText}</Text>
         </View>

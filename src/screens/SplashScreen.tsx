@@ -1,22 +1,22 @@
 import React from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Image } from 'react-native';
 
-export default function SplashScreen() {
+export default function SplashScreen(): React.JSX.Element {
   return (
     <View style={styles.container}>
       <View style={styles.logoContainer}>
         <View style={styles.logoCircle}>
-          <Image 
-            source={require('../../assets/images/logo.png')} 
+          <Image
+            source={require('../../assets/images/logo.png')}
             style={styles.logo}
             resizeMode="contain"
           />
         </View>
       </View>
-      
+
       <Text style={styles.title}>Ember Sentinel</Text>
       <Text style={styles.subtitle}>실시간 화재 감지 모니터링</Text>
-      
+
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="small" color="#FFFFFF" />
         <Text style={styles.loadingText}>Always Watching, Always Protected</Text>

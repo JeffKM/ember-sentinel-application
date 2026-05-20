@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
   TouchableOpacity,
   TouchableWithoutFeedback,
   SafeAreaView,
@@ -13,31 +13,49 @@ import {
   TextInput,
   Image,
   ActivityIndicator,
-  RefreshControl
+  RefreshControl,
+  GestureResponderEvent,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { runNetworkDiagnostics } from '../utils/networkTest';
 import { getRoomData, getBuildingList, createRoom, deleteRoom } from '../config/api';
 import { getDemoRoomData, getDemoBuildings } from '../data/demoData';
 import { sendFireSimulationNotification } from '../utils/pushNotification';
+import type { StackScreenProps } from '@react-navigation/stack';
+import type { RootStackParamList, Room, Building, RoomSummaryResponse } from '../types';
 
-export default function HomeScreen({ navigation, onLogout, userRole }) {
-  const [isAddModalVisible, setIsAddModalVisible] = useState(false);
-  const [newRoom, setNewRoom] = useState({
+interface HomeScreenProps extends StackScreenProps<RootStackParamList, 'Home'> {
+  onLogout: () => Promise<void>;
+  userRole: string | null;
+}
+
+export default function HomeScreen({ navigation, onLogout, userRole }: HomeScreenProps) {
+  const [isAddModalVisible, setIsAddModalVisible] = useState<boolean>(false);
+  const [newRoom, setNewRoom] = useState<{
+    buildingId: number | null;
+    buildingName: string;
+    floor: string;
+    roomNumber: string;
+    roomAlias: string;
+  }>({
     buildingId: null,
     buildingName: '',
     floor: '',
     roomNumber: '',
-    roomAlias: ''
+    roomAlias: '',
   });
-  const [buildingList, setBuildingList] = useState([]);
-  const [isBuildingSelectVisible, setIsBuildingSelectVisible] = useState(false);
-  const [isOfflineMode, setIsOfflineMode] = useState(false);
-  const [userInfo, setUserInfo] = useState({});
-  const [roomData, setRoomData] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isSubmittingRoom, setIsSubmittingRoom] = useState(false);
+  const [buildingList, setBuildingList] = useState<Building[]>([]);
+  const [isBuildingSelectVisible, setIsBuildingSelectVisible] = useState<boolean>(false);
+  const [isOfflineMode, setIsOfflineMode] = useState<boolean>(false);
+  const [userInfo, setUserInfo] = useState<{
+    email: string | null;
+    nickname: string | null;
+    provider: string | null;
+  }>({} as { email: string | null; nickname: string | null; provider: string | null });
+  const [roomData, setRoomData] = useState<RoomSummaryResponse | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [isSubmittingRoom, setIsSubmittingRoom] = useState<boolean>(false);
 
   // 사용자 정보 및 오프라인 모드 확인
   useEffect(() => {
@@ -46,13 +64,13 @@ export default function HomeScreen({ navigation, onLogout, userRole }) {
         const email = await AsyncStorage.getItem('userEmail');
         const nickname = await AsyncStorage.getItem('userNickname');
         const provider = await AsyncStorage.getItem('loginProvider');
-        
+
         setUserInfo({ email, nickname, provider });
-        
+
         // 오프라인 모드 확인 (서버 JWT 토큰이 없는 경우)
         const token = await AsyncStorage.getItem('userToken');
         const refreshToken = await AsyncStorage.getItem('refreshToken');
-        
+
         // 서버에서 받은 JWT 토큰이 없거나, refreshToken이 없으면 오프라인 모드
         if (!refreshToken || (token && (token.startsWith('ya29.') || token.startsWith('EAAG')))) {
           // 구글/카카오 원본 토큰만 있고 서버 JWT가 없는 경우 = 오프라인 모드
@@ -84,14 +102,13 @@ export default function HomeScreen({ navigation, onLogout, userRole }) {
     try {
       setIsLoading(true);
       console.log('🔄 Room 데이터 로딩 시작...');
-      
+
       const data = await getRoomData();
       setRoomData(data);
       console.log('✅ Room 데이터 로딩 완료');
-      
     } catch (error) {
       console.error('❌ Room 데이터 로딩 실패:', error);
-      
+
       Alert.alert(
         '데이터 로딩 실패',
         '서버에서 데이터를 가져올 수 없습니다.\n오프라인 모드로 전환합니다.',
@@ -100,9 +117,9 @@ export default function HomeScreen({ navigation, onLogout, userRole }) {
             text: '확인',
             onPress: () => {
               setIsOfflineMode(true);
-            }
-          }
-        ]
+            },
+          },
+        ],
       );
     } finally {
       setIsLoading(false);
@@ -119,58 +136,54 @@ export default function HomeScreen({ navigation, onLogout, userRole }) {
   // 네트워크 테스트 함수
   const handleNetworkTest = async () => {
     Alert.alert('네트워크 테스트', '네트워크 상태를 확인합니다. 콘솔을 확인해주세요.');
-    
+
     try {
       const results = await runNetworkDiagnostics();
-      
+
       let message = '네트워크 진단 완료!\n\n';
       message += `기본 네트워크: ${results.basicNetwork ? '✅ 정상' : '❌ 실패'}\n`;
       message += `서버 연결: ${results.serverConnection ? '✅ 정상' : '❌ 실패'}`;
-      
+
       if (results.serverConnection && isOfflineMode) {
         message += '\n\n🎉 서버 연결이 복구되었습니다!';
-        
-        Alert.alert(
-          '네트워크 진단 결과', 
-          message,
-          [
-            { text: '계속 오프라인', style: 'cancel' },
-            { 
-              text: '온라인 모드로 전환', 
-              onPress: () => {
-                setIsOfflineMode(false);
-                Alert.alert('성공', '온라인 모드로 전환되었습니다!');
-              }
-            }
-          ]
-        );
+
+        Alert.alert('네트워크 진단 결과', message, [
+          { text: '계속 오프라인', style: 'cancel' },
+          {
+            text: '온라인 모드로 전환',
+            onPress: () => {
+              setIsOfflineMode(false);
+              Alert.alert('성공', '온라인 모드로 전환되었습니다!');
+            },
+          },
+        ]);
         return;
       }
-      
+
       if (!results.serverConnection && results.basicNetwork) {
         message += '\n\n💡 네이티브 빌드를 시도해보세요:\nexpo run:ios 또는 expo run:android';
       }
-      
+
       Alert.alert('네트워크 진단 결과', message);
-    } catch (error) {
+    } catch (error: any) {
       Alert.alert('오류', `네트워크 테스트 중 오류가 발생했습니다: ${error.message}`);
     }
   };
   // 실제 데이터 또는 로딩 상태
-  const rooms = roomData?.roomList || [];
-  const totalRooms = roomData?.totalRoomCount || 0;
-  const totalCameras = roomData?.totalCameraCount || 0;
-  const totalFireDetections = roomData?.liveStreamCount || 0;
+  const rooms: Room[] = roomData?.roomList || [];
+  const totalRooms: number = roomData?.totalRoomCount || 0;
+  const totalCameras: number = roomData?.totalCameraCount || 0;
+  const totalFireDetections: number = roomData?.liveStreamCount || 0;
 
-  const getStatusColor = (fireEventCount) => {
+  const getStatusColor = (fireEventCount: number): string => {
     return fireEventCount > 0 ? '#FF3B30' : '#34C759';
   };
 
-  const getStatusText = (fireEventCount) => {
+  const getStatusText = (fireEventCount: number): string => {
     return fireEventCount > 0 ? '위험' : '안전';
   };
 
-  const getRoleBadgeColor = (role) => {
+  const getRoleBadgeColor = (role: string | null): string => {
     switch (role) {
       case 'admin':
         return '#34C759';
@@ -183,7 +196,7 @@ export default function HomeScreen({ navigation, onLogout, userRole }) {
     }
   };
 
-  const getRoleText = (role) => {
+  const getRoleText = (role: string | null): string => {
     switch (role) {
       case 'admin':
         return '관리자';
@@ -209,7 +222,7 @@ export default function HomeScreen({ navigation, onLogout, userRole }) {
     try {
       console.log('🏢 빌딩 목록 로딩 시작...');
       const response = await getBuildingList();
-      
+
       if (response.buildingList && Array.isArray(response.buildingList)) {
         setBuildingList(response.buildingList);
         console.log('✅ 빌딩 목록 로딩 완료:', response.buildingList.length, '개');
@@ -219,19 +232,15 @@ export default function HomeScreen({ navigation, onLogout, userRole }) {
       }
     } catch (error) {
       console.error('❌ 빌딩 목록 로딩 실패:', error);
-      Alert.alert(
-        '오류',
-        '빌딩 목록을 불러올 수 없습니다.\n오프라인 모드로 전환합니다.',
-        [
-          {
-            text: '확인',
-            onPress: () => {
-              setIsOfflineMode(true);
-              setBuildingList(getDemoBuildings());
-            }
-          }
-        ]
-      );
+      Alert.alert('오류', '빌딩 목록을 불러올 수 없습니다.\n오프라인 모드로 전환합니다.', [
+        {
+          text: '확인',
+          onPress: () => {
+            setIsOfflineMode(true);
+            setBuildingList(getDemoBuildings());
+          },
+        },
+      ]);
     }
   };
 
@@ -240,7 +249,7 @@ export default function HomeScreen({ navigation, onLogout, userRole }) {
       Alert.alert('권한 없음', '사용자는 구역을 추가할 수 없습니다.');
       return;
     }
-    
+
     setIsAddModalVisible(true);
     await loadBuildingList();
   };
@@ -255,14 +264,9 @@ export default function HomeScreen({ navigation, onLogout, userRole }) {
     try {
       setIsSubmittingRoom(true);
       console.log('➕ Room 추가 요청...');
-      
-      await createRoom(
-        newRoom.buildingId,
-        newRoom.roomAlias,
-        newRoom.floor,
-        newRoom.roomNumber
-      );
-      
+
+      await createRoom(newRoom.buildingId, newRoom.roomAlias, newRoom.floor, newRoom.roomNumber);
+
       Alert.alert(
         '구역 추가 완료',
         `${newRoom.buildingName} ${newRoom.floor} ${newRoom.roomNumber}호가 추가되었습니다.`,
@@ -277,21 +281,20 @@ export default function HomeScreen({ navigation, onLogout, userRole }) {
                 buildingName: '',
                 floor: '',
                 roomNumber: '',
-                roomAlias: ''
+                roomAlias: '',
               });
-              
+
               // Room 목록 새로고침
               await loadRoomData();
-            }
-          }
-        ]
+            },
+          },
+        ],
       );
-      
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Room 추가 실패:', error);
       Alert.alert(
         '구역 추가 실패',
-        error.message || '서버에 구역을 추가할 수 없습니다. 다시 시도해주세요.'
+        error.message || '서버에 구역을 추가할 수 없습니다. 다시 시도해주세요.',
       );
     } finally {
       setIsSubmittingRoom(false);
@@ -306,11 +309,11 @@ export default function HomeScreen({ navigation, onLogout, userRole }) {
       buildingName: '',
       floor: '',
       roomNumber: '',
-      roomAlias: ''
+      roomAlias: '',
     });
   };
 
-  const handleSelectBuilding = (building) => {
+  const handleSelectBuilding = (building: Building): void => {
     setNewRoom({
       ...newRoom,
       buildingId: building.id,
@@ -319,63 +322,54 @@ export default function HomeScreen({ navigation, onLogout, userRole }) {
     setIsBuildingSelectVisible(false);
   };
 
-  const handleDeleteRoom = (room) => {
+  const handleDeleteRoom = (room: Room): void => {
     if (!canAddRoom) {
       Alert.alert('권한 없음', '사용자는 구역을 삭제할 수 없습니다.');
       return;
     }
-    
-    Alert.alert(
-      '구역 삭제',
-      `${room.roomAlias}을(를) 삭제하시겠습니까?`,
-      [
-        { text: '취소', style: 'cancel' },
-        { 
-          text: '삭제', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              console.log('🗑️ Room 삭제 요청...');
-              
-              await deleteRoom(room.roomId);
-              
-              Alert.alert(
-                '삭제 완료',
-                `${room.roomAlias}이(가) 삭제되었습니다.`,
-                [
-                  {
-                    text: '확인',
-                    onPress: async () => {
-                      // Room 목록 새로고침
-                      await loadRoomData();
-                    }
-                  }
-                ]
-              );
-              
-            } catch (error) {
-              console.error('❌ Room 삭제 실패:', error);
-              Alert.alert(
-                '삭제 실패',
-                error.message || '서버에서 구역을 삭제할 수 없습니다. 다시 시도해주세요.'
-              );
-            }
+
+    Alert.alert('구역 삭제', `${room.roomAlias}을(를) 삭제하시겠습니까?`, [
+      { text: '취소', style: 'cancel' },
+      {
+        text: '삭제',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            console.log('🗑️ Room 삭제 요청...');
+
+            await deleteRoom(room.roomId);
+
+            Alert.alert('삭제 완료', `${room.roomAlias}이(가) 삭제되었습니다.`, [
+              {
+                text: '확인',
+                onPress: async () => {
+                  // Room 목록 새로고침
+                  await loadRoomData();
+                },
+              },
+            ]);
+          } catch (error: any) {
+            console.error('❌ Room 삭제 실패:', error);
+            Alert.alert(
+              '삭제 실패',
+              error.message || '서버에서 구역을 삭제할 수 없습니다. 다시 시도해주세요.',
+            );
           }
-        }
-      ]
-    );
+        },
+      },
+    ]);
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#FF3B30" />
-      
+
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={styles.iconContainer}>
-            <Image 
-              source={require('../../assets/images/logo.png')} 
+            <Image
+              source={require('../../assets/images/logo.png')}
               style={styles.logoImage}
               resizeMode="contain"
             />
@@ -387,17 +381,13 @@ export default function HomeScreen({ navigation, onLogout, userRole }) {
             </Text>
           </View>
         </View>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.logoutButton}
           onPress={() => {
-            Alert.alert(
-              '로그아웃',
-              '로그아웃 하시겠습니까?',
-              [
-                { text: '취소', style: 'cancel' },
-                { text: '로그아웃', onPress: onLogout, style: 'destructive' }
-              ]
-            );
+            Alert.alert('로그아웃', '로그아웃 하시겠습니까?', [
+              { text: '취소', style: 'cancel' },
+              { text: '로그아웃', onPress: onLogout, style: 'destructive' },
+            ]);
           }}
         >
           <Text style={styles.logoutIcon}>🔄</Text>
@@ -430,7 +420,7 @@ export default function HomeScreen({ navigation, onLogout, userRole }) {
       </View>
 
       {/* Content */}
-      <ScrollView 
+      <ScrollView
         style={styles.content}
         refreshControl={
           <RefreshControl
@@ -449,18 +439,11 @@ export default function HomeScreen({ navigation, onLogout, userRole }) {
         {/* Offline Mode Notice */}
         {isOfflineMode && (
           <View style={styles.offlineNotice}>
-            <Text style={styles.offlineNoticeText}>
-              🔄 오프라인 모드로 실행 중입니다
-            </Text>
-            <Text style={styles.offlineNoticeSubText}>
-              서버 연결이 복구되면 새로고침해주세요
-            </Text>
+            <Text style={styles.offlineNoticeText}>🔄 오프라인 모드로 실행 중입니다</Text>
+            <Text style={styles.offlineNoticeSubText}>서버 연결이 복구되면 새로고침해주세요</Text>
             <View style={styles.offlineButtonsRow}>
               {__DEV__ && (
-                <TouchableOpacity
-                  style={styles.networkTestButton}
-                  onPress={handleNetworkTest}
-                >
+                <TouchableOpacity style={styles.networkTestButton} onPress={handleNetworkTest}>
                   <Text style={styles.networkTestButtonText}>네트워크 테스트</Text>
                 </TouchableOpacity>
               )}
@@ -492,51 +475,59 @@ export default function HomeScreen({ navigation, onLogout, userRole }) {
         )}
 
         {/* Room List */}
-        {!isLoading && rooms.map((room) => (
-          <TouchableOpacity
-            key={room.roomId}
-            style={styles.roomCard}
-            onPress={() => navigation.navigate('RoomDetail', { room })}
-            activeOpacity={0.7}
-          >
-            <View style={styles.roomHeader}>
-              <View style={styles.roomTitleRow}>
-                <Text style={styles.roomName}>{room.roomAlias}</Text>
-                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(room.fireEventCountPerRoom) }]}>
-                  <Text style={styles.statusText}>{getStatusText(room.fireEventCountPerRoom)}</Text>
+        {!isLoading &&
+          rooms.map((room) => (
+            <TouchableOpacity
+              key={room.roomId}
+              style={styles.roomCard}
+              onPress={() => navigation.navigate('RoomDetail', { room })}
+              activeOpacity={0.7}
+            >
+              <View style={styles.roomHeader}>
+                <View style={styles.roomTitleRow}>
+                  <Text style={styles.roomName}>{room.roomAlias}</Text>
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      { backgroundColor: getStatusColor(room.fireEventCountPerRoom) },
+                    ]}
+                  >
+                    <Text style={styles.statusText}>
+                      {getStatusText(room.fireEventCountPerRoom)}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={styles.arrowIcon}>›</Text>
+              </View>
+
+              <View style={styles.roomStatsRow}>
+                <View style={styles.roomStatItem}>
+                  <Text style={styles.cameraIcon}>📷</Text>
+                  <Text style={styles.roomStatText}>{room.cameraCountPerRoom}대</Text>
+                </View>
+
+                <View style={styles.roomRightSection}>
+                  {room.fireEventCountPerRoom > 0 && (
+                    <View style={styles.fireAlert}>
+                      <Text style={styles.fireIcon}>🔥</Text>
+                      <Text style={styles.fireAlertText}>화재 {room.fireEventCountPerRoom}건</Text>
+                    </View>
+                  )}
+                  {canAddRoom && (
+                    <TouchableOpacity
+                      style={styles.deleteButton}
+                      onPress={(e: GestureResponderEvent) => {
+                        e.stopPropagation();
+                        handleDeleteRoom(room);
+                      }}
+                    >
+                      <Text style={styles.deleteIcon}>🗑️</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               </View>
-              <Text style={styles.arrowIcon}>›</Text>
-            </View>
-            
-            <View style={styles.roomStatsRow}>
-              <View style={styles.roomStatItem}>
-                <Text style={styles.cameraIcon}>📷</Text>
-                <Text style={styles.roomStatText}>{room.cameraCountPerRoom}대</Text>
-              </View>
-              
-              <View style={styles.roomRightSection}>
-                {room.fireEventCountPerRoom > 0 && (
-                  <View style={styles.fireAlert}>
-                    <Text style={styles.fireIcon}>🔥</Text>
-                    <Text style={styles.fireAlertText}>화재 {room.fireEventCountPerRoom}건</Text>
-                  </View>
-                )}
-                {canAddRoom && (
-                  <TouchableOpacity 
-                    style={styles.deleteButton}
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      handleDeleteRoom(room);
-                    }}
-                  >
-                    <Text style={styles.deleteIcon}>🗑️</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
-          </TouchableOpacity>
-        ))}
+            </TouchableOpacity>
+          ))}
 
         {/* Empty State */}
         {!isLoading && rooms.length === 0 && (
@@ -549,10 +540,7 @@ export default function HomeScreen({ navigation, onLogout, userRole }) {
 
       {/* Floating Add Button - Only for admin and editor */}
       {canAddRoom && (
-        <TouchableOpacity 
-          style={styles.floatingButton}
-          onPress={handleAddRoom}
-        >
+        <TouchableOpacity style={styles.floatingButton} onPress={handleAddRoom}>
           <Text style={styles.floatingButtonText}>+</Text>
         </TouchableOpacity>
       )}
@@ -577,7 +565,7 @@ export default function HomeScreen({ navigation, onLogout, userRole }) {
             <Text style={styles.modalSubtitle}>새로운 구역 정보를 입력하세요.</Text>
 
             {/* Form Fields */}
-            <ScrollView 
+            <ScrollView
               style={styles.modalScrollView}
               contentContainerStyle={styles.modalScrollContent}
               nestedScrollEnabled={true}
@@ -588,10 +576,17 @@ export default function HomeScreen({ navigation, onLogout, userRole }) {
                   style={styles.selectInput}
                   onPress={() => setIsBuildingSelectVisible(!isBuildingSelectVisible)}
                 >
-                  <Text style={[styles.selectInputText, !newRoom.buildingName && styles.selectInputPlaceholder]}>
+                  <Text
+                    style={[
+                      styles.selectInputText,
+                      !newRoom.buildingName && styles.selectInputPlaceholder,
+                    ]}
+                  >
                     {newRoom.buildingName || '건물을 선택하세요'}
                   </Text>
-                  <Text style={[styles.selectArrow, isBuildingSelectVisible && styles.selectArrowUp]}>
+                  <Text
+                    style={[styles.selectArrow, isBuildingSelectVisible && styles.selectArrowUp]}
+                  >
                     {isBuildingSelectVisible ? '▲' : '▼'}
                   </Text>
                 </TouchableOpacity>
@@ -604,7 +599,7 @@ export default function HomeScreen({ navigation, onLogout, userRole }) {
                   placeholder="예: 3F"
                   placeholderTextColor="#999999"
                   value={newRoom.floor}
-                  onChangeText={(text) => setNewRoom({...newRoom, floor: text})}
+                  onChangeText={(text: string) => setNewRoom({ ...newRoom, floor: text })}
                 />
               </View>
 
@@ -615,7 +610,7 @@ export default function HomeScreen({ navigation, onLogout, userRole }) {
                   placeholder="예: 305"
                   placeholderTextColor="#999999"
                   value={newRoom.roomNumber}
-                  onChangeText={(text) => setNewRoom({...newRoom, roomNumber: text})}
+                  onChangeText={(text: string) => setNewRoom({ ...newRoom, roomNumber: text })}
                 />
               </View>
 
@@ -626,12 +621,12 @@ export default function HomeScreen({ navigation, onLogout, userRole }) {
                   placeholder="예: 회의실"
                   placeholderTextColor="#999999"
                   value={newRoom.roomAlias}
-                  onChangeText={(text) => setNewRoom({...newRoom, roomAlias: text})}
+                  onChangeText={(text: string) => setNewRoom({ ...newRoom, roomAlias: text })}
                 />
               </View>
 
               {/* Action Buttons */}
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.submitButton, isSubmittingRoom && styles.submitButtonDisabled]}
                 onPress={handleSubmitRoom}
                 disabled={isSubmittingRoom}
@@ -643,7 +638,7 @@ export default function HomeScreen({ navigation, onLogout, userRole }) {
                 )}
               </TouchableOpacity>
 
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.cancelButton}
                 onPress={handleCancelAdd}
                 disabled={isSubmittingRoom}
@@ -652,14 +647,16 @@ export default function HomeScreen({ navigation, onLogout, userRole }) {
               </TouchableOpacity>
             </ScrollView>
           </View>
-          
+
           {/* Building Select Dropdown - 모달 컨텐츠 위에 오버레이 */}
           {isBuildingSelectVisible && (
             <TouchableWithoutFeedback onPress={() => setIsBuildingSelectVisible(false)}>
               <View style={styles.buildingSelectDropdownOverlay}>
-                <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
+                <TouchableWithoutFeedback
+                  onPress={(e: GestureResponderEvent) => e.stopPropagation()}
+                >
                   <View style={styles.buildingSelectDropdown}>
-                    <ScrollView 
+                    <ScrollView
                       style={styles.buildingSelectList}
                       nestedScrollEnabled={true}
                       showsVerticalScrollIndicator={true}
@@ -670,14 +667,18 @@ export default function HomeScreen({ navigation, onLogout, userRole }) {
                             key={building.id}
                             style={[
                               styles.buildingSelectOption,
-                              newRoom.buildingId === building.id && styles.buildingSelectOptionSelected
+                              newRoom.buildingId === building.id &&
+                                styles.buildingSelectOptionSelected,
                             ]}
                             onPress={() => handleSelectBuilding(building)}
                           >
-                            <Text style={[
-                              styles.buildingSelectOptionText,
-                              newRoom.buildingId === building.id && styles.buildingSelectOptionTextSelected
-                            ]}>
+                            <Text
+                              style={[
+                                styles.buildingSelectOptionText,
+                                newRoom.buildingId === building.id &&
+                                  styles.buildingSelectOptionTextSelected,
+                              ]}
+                            >
                               {building.buildingName}
                             </Text>
                             {newRoom.buildingId === building.id && (

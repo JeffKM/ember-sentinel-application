@@ -1,42 +1,56 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
+import {
+  View,
+  Text,
+  StyleSheet,
   TouchableOpacity,
   SafeAreaView,
   StatusBar,
-  ScrollView 
+  ScrollView,
 } from 'react-native';
+import type { StackScreenProps } from '@react-navigation/stack';
+import type { RootStackParamList } from '../types';
 
-export default function FireLocationScreen({ route, navigation }) {
+interface FloorRoom {
+  id: string;
+  name: string;
+  hasFire: boolean;
+}
+
+type Props = StackScreenProps<RootStackParamList, 'FireLocation'>;
+
+export default function FireLocationScreen({ route, navigation }: Props) {
   const { camera, room } = route.params;
   const [selectedFloor, setSelectedFloor] = useState('3층');
 
   const floors = ['1층', '2층', '3층', '4층', '5층', '6층'];
 
   // 층별 호실 데이터 생성 함수
-  const getRoomsForFloor = (floor) => {
+  const getRoomsForFloor = (floor: string): FloorRoom[] => {
     const floorNumber = floor.replace('층', '');
     const startRoom = parseInt(floorNumber) * 100 + 1;
-    
+
     return [
       { id: `${startRoom}`, name: `${startRoom}호`, hasFire: false },
       { id: `${startRoom + 1}`, name: `${startRoom + 1}호`, hasFire: false },
       { id: `${startRoom + 2}`, name: `${startRoom + 2}호`, hasFire: false },
       { id: `${startRoom + 3}`, name: `${startRoom + 3}호`, hasFire: false },
-      { id: `${startRoom + 4}`, name: `${startRoom + 4}호`, hasFire: selectedFloor === '3층' && `${startRoom + 4}호` === '305호' },
+      {
+        id: `${startRoom + 4}`,
+        name: `${startRoom + 4}호`,
+        hasFire: selectedFloor === '3층' && `${startRoom + 4}호` === '305호',
+      },
       { id: `${startRoom + 5}`, name: `${startRoom + 5}호`, hasFire: false },
     ];
   };
 
   const rooms = getRoomsForFloor(selectedFloor);
-  const fireRoom = rooms.find(r => r.hasFire);
+  const fireRoom = rooms.find((r) => r.hasFire);
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#1a1a2e" />
-      
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -52,8 +66,8 @@ export default function FireLocationScreen({ route, navigation }) {
       </View>
 
       {/* Floor Selector */}
-      <ScrollView 
-        horizontal 
+      <ScrollView
+        horizontal
         showsHorizontalScrollIndicator={false}
         style={styles.floorSelector}
         contentContainerStyle={styles.floorSelectorContent}
@@ -61,16 +75,15 @@ export default function FireLocationScreen({ route, navigation }) {
         {floors.map((floor) => (
           <TouchableOpacity
             key={floor}
-            style={[
-              styles.floorButton,
-              selectedFloor === floor && styles.floorButtonActive
-            ]}
+            style={[styles.floorButton, selectedFloor === floor && styles.floorButtonActive]}
             onPress={() => setSelectedFloor(floor)}
           >
-            <Text style={[
-              styles.floorButtonText,
-              selectedFloor === floor && styles.floorButtonTextActive
-            ]}>
+            <Text
+              style={[
+                styles.floorButtonText,
+                selectedFloor === floor && styles.floorButtonTextActive,
+              ]}
+            >
               {floor}
             </Text>
           </TouchableOpacity>
@@ -97,20 +110,9 @@ export default function FireLocationScreen({ route, navigation }) {
           {/* Bottom Row */}
           <View style={styles.roomRow}>
             {rooms.slice(3, 6).map((room) => (
-              <View 
-                key={room.id} 
-                style={[
-                  styles.room,
-                  room.hasFire && styles.roomFire
-                ]}
-              >
-                {room.hasFire && (
-                  <Text style={styles.fireIcon}>🔥</Text>
-                )}
-                <Text style={[
-                  styles.roomNumber,
-                  room.hasFire && styles.roomNumberFire
-                ]}>
+              <View key={room.id} style={[styles.room, room.hasFire && styles.roomFire]}>
+                {room.hasFire && <Text style={styles.fireIcon}>🔥</Text>}
+                <Text style={[styles.roomNumber, room.hasFire && styles.roomNumberFire]}>
                   {room.name}
                 </Text>
               </View>

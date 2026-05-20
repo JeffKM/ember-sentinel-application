@@ -1,21 +1,25 @@
 import React from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
   TouchableOpacity,
   SafeAreaView,
-  StatusBar 
+  StatusBar,
 } from 'react-native';
+import type { StackScreenProps } from '@react-navigation/stack';
+import type { RootStackParamList } from '../types';
 
-export default function FireAlertDetailScreen({ route, navigation }) {
+type Props = StackScreenProps<RootStackParamList, 'FireAlertDetail'>;
+
+export default function FireAlertDetailScreen({ route, navigation }: Props) {
   const { camera, room } = route.params;
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#E31E24" />
-      
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -41,13 +45,13 @@ export default function FireAlertDetailScreen({ route, navigation }) {
 
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>구역</Text>
-            <Text style={styles.infoValue}>{room.roomAlias || room.name || '구역'}</Text>
+            <Text style={styles.infoValue}>{room.roomAlias || '구역'}</Text>
           </View>
 
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>카메라</Text>
             <View style={styles.cameraInfo}>
-              <Text style={styles.infoValue}>{camera.cameraEdgeAlias || camera.name || '카메라'}</Text>
+              <Text style={styles.infoValue}>{camera.cameraEdgeAlias || '카메라'}</Text>
               <View style={styles.dangerBadge}>
                 <Text style={styles.dangerBadgeText}>화재</Text>
               </View>
@@ -56,7 +60,7 @@ export default function FireAlertDetailScreen({ route, navigation }) {
 
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>위치</Text>
-            <Text style={styles.infoValue}>{camera.locationFloor || camera.location || '-'}</Text>
+            <Text style={styles.infoValue}>{camera.locationFloor || '-'}</Text>
           </View>
 
           <View style={styles.infoRow}>
@@ -69,21 +73,22 @@ export default function FireAlertDetailScreen({ route, navigation }) {
         <View style={styles.descriptionCard}>
           <Text style={styles.descriptionTitle}>상황 설명</Text>
           <Text style={styles.descriptionText}>
-            305호 중앙에서 작은 불이 감지되었습니다. 화재가 확실한 수 있으니 즉시 대피하시고, 아래 버튼을 통해 현장 영상을 확인하거나 화재 위치를 확인하세요.
+            305호 중앙에서 작은 불이 감지되었습니다. 화재가 확실한 수 있으니 즉시 대피하시고, 아래
+            버튼을 통해 현장 영상을 확인하거나 화재 위치를 확인하세요.
           </Text>
         </View>
       </ScrollView>
 
       {/* Action Buttons */}
       <View style={styles.actionButtons}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.primaryButton}
           onPress={() => navigation.navigate('CCTVLive', { camera, room })}
         >
           <Text style={styles.primaryButtonText}>화재 영상 보기</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.secondaryButton}
           onPress={() => navigation.navigate('FireLocation', { camera, room })}
         >

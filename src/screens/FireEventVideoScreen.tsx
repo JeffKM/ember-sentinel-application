@@ -1,17 +1,12 @@
 import React, { useState, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  SafeAreaView,
-  StatusBar
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar } from 'react-native';
+import type { StackScreenProps } from '@react-navigation/stack';
+import type { RootStackParamList } from '../types';
 import { DEMO_VIDEO_SOURCES } from '../data/demoData';
 
 // expo-video 동적 import — 로드 실패 시 정적 목업으로 폴백
-let VideoView = null;
-let useVideoPlayer = null;
+let VideoView: React.ComponentType<any> | null = null;
+let useVideoPlayer: ((source: any, setup?: (player: any) => void) => any) | null = null;
 try {
   const expoVideo = require('expo-video');
   VideoView = expoVideo.VideoView;
@@ -22,8 +17,14 @@ try {
 
 const canPlayVideo = VideoView && useVideoPlayer && DEMO_VIDEO_SOURCES.fireEvent;
 
-function EventVideoPlayer({ source, isPlaying, onToggle }) {
-  const player = useVideoPlayer(source, (p) => {
+interface EventVideoPlayerProps {
+  source: number;
+  isPlaying: boolean;
+  onToggle: () => void;
+}
+
+function EventVideoPlayer({ source, isPlaying, onToggle }: EventVideoPlayerProps) {
+  const player = useVideoPlayer!(source, (p: any) => {
     p.loop = true;
   });
 
@@ -37,22 +38,22 @@ function EventVideoPlayer({ source, isPlaying, onToggle }) {
   }, [isPlaying, player]);
 
   return (
-    <TouchableOpacity
-      style={StyleSheet.absoluteFill}
-      activeOpacity={0.9}
-      onPress={onToggle}
-    >
-      <VideoView
-        player={player}
-        style={StyleSheet.absoluteFill}
-        contentFit="cover"
-        nativeControls={false}
-      />
+    <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={0.9} onPress={onToggle}>
+      {VideoView && (
+        <VideoView
+          player={player}
+          style={StyleSheet.absoluteFill}
+          contentFit="cover"
+          nativeControls={false}
+        />
+      )}
     </TouchableOpacity>
   );
 }
 
-export default function FireEventVideoScreen({ route, navigation }) {
+type Props = StackScreenProps<RootStackParamList, 'FireEventVideo'>;
+
+export default function FireEventVideoScreen({ route, navigation }: Props) {
   const { event, camera, room } = route.params;
   const [isPlaying, setIsPlaying] = useState(false);
 
@@ -60,7 +61,7 @@ export default function FireEventVideoScreen({ route, navigation }) {
     setIsPlaying((prev) => !prev);
   }, []);
 
-  const cameraName = camera.cameraEdgeAlias || camera.name || '카메라';
+  const cameraName = camera.cameraEdgeAlias || '카메라';
   const showVideo = canPlayVideo;
 
   return (
@@ -74,7 +75,9 @@ export default function FireEventVideoScreen({ route, navigation }) {
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>화재 이벤트 영상</Text>
-          <Text style={styles.headerSubtitle}>{cameraName} · {room?.roomAlias || '구역'}</Text>
+          <Text style={styles.headerSubtitle}>
+            {cameraName} · {room?.roomAlias || '구역'}
+          </Text>
         </View>
         <TouchableOpacity style={styles.downloadButton}>
           <Text style={styles.downloadText}>⬇︎ 녹화 영상</Text>
@@ -85,7 +88,7 @@ export default function FireEventVideoScreen({ route, navigation }) {
       <View style={styles.videoContainer}>
         {showVideo ? (
           <EventVideoPlayer
-            source={DEMO_VIDEO_SOURCES.fireEvent}
+            source={DEMO_VIDEO_SOURCES.fireEvent!}
             isPlaying={isPlaying}
             onToggle={handleTogglePlay}
           />
@@ -123,10 +126,7 @@ export default function FireEventVideoScreen({ route, navigation }) {
           <Text style={styles.timeText}>2:15</Text>
         </View>
 
-        <TouchableOpacity
-          style={styles.playButton}
-          onPress={handleTogglePlay}
-        >
+        <TouchableOpacity style={styles.playButton} onPress={handleTogglePlay}>
           <Text style={styles.playIcon}>{isPlaying ? '❚❚' : '▶'}</Text>
         </TouchableOpacity>
       </View>

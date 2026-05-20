@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
   TouchableOpacity,
   SafeAreaView,
   StatusBar,
@@ -11,31 +11,42 @@ import {
   Modal,
   TextInput,
   ActivityIndicator,
-  RefreshControl
+  RefreshControl,
+  GestureResponderEvent,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getRoomDetail, addUserToRoom, removeUserFromRoom, addCameraToRoom, removeCameraFromRoom } from '../config/api';
+import {
+  getRoomDetail,
+  addUserToRoom,
+  removeUserFromRoom,
+  addCameraToRoom,
+  removeCameraFromRoom,
+} from '../config/api';
 import { getDemoRoomDetail } from '../data/demoData';
+import type { StackScreenProps } from '@react-navigation/stack';
+import type { RootStackParamList, RoomDetail, Member, Camera } from '../types';
 
-export default function RoomDetailScreen({ route, navigation }) {
+type RoomDetailScreenProps = StackScreenProps<RootStackParamList, 'RoomDetail'>;
+
+export default function RoomDetailScreen({ route, navigation }: RoomDetailScreenProps) {
   const { room } = route.params;
-  const [selectedTab, setSelectedTab] = useState('재실 인원');
-  const [isAddMemberModalVisible, setIsAddMemberModalVisible] = useState(false);
-  const [isAddCameraModalVisible, setIsAddCameraModalVisible] = useState(false);
-  const [newMember, setNewMember] = useState({
+  const [selectedTab, setSelectedTab] = useState<'재실 인원' | '카메라 목록'>('재실 인원');
+  const [isAddMemberModalVisible, setIsAddMemberModalVisible] = useState<boolean>(false);
+  const [isAddCameraModalVisible, setIsAddCameraModalVisible] = useState<boolean>(false);
+  const [newMember, setNewMember] = useState<{ email: string; role: string }>({
     email: '',
-    role: ''
+    role: '',
   });
-  const [newCamera, setNewCamera] = useState({
+  const [newCamera, setNewCamera] = useState<{ name: string; deviceUuid: string }>({
     name: '',
-    deviceUuid: ''
+    deviceUuid: '',
   });
-  const [isSubmittingCamera, setIsSubmittingCamera] = useState(false);
-  const [roomDetail, setRoomDetail] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isOfflineMode, setIsOfflineMode] = useState(false);
-  const [isSubmittingMember, setIsSubmittingMember] = useState(false);
+  const [isSubmittingCamera, setIsSubmittingCamera] = useState<boolean>(false);
+  const [roomDetail, setRoomDetail] = useState<RoomDetail | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [isOfflineMode, setIsOfflineMode] = useState<boolean>(false);
+  const [isSubmittingMember, setIsSubmittingMember] = useState<boolean>(false);
 
   // 오프라인 모드 확인
   useEffect(() => {
@@ -43,7 +54,7 @@ export default function RoomDetailScreen({ route, navigation }) {
       try {
         const refreshToken = await AsyncStorage.getItem('refreshToken');
         const token = await AsyncStorage.getItem('userToken');
-        
+
         if (!refreshToken || (token && (token.startsWith('ya29.') || token.startsWith('EAAG')))) {
           setIsOfflineMode(true);
         } else {
@@ -74,14 +85,13 @@ export default function RoomDetailScreen({ route, navigation }) {
     try {
       setIsLoading(true);
       console.log(`🔄 Room 세부 정보 로딩 시작 - Room ID: ${room.roomId}`);
-      
-      const data = await getRoomDetail(room.roomId);
+
+      const data = (await getRoomDetail(room.roomId)) as RoomDetail;
       setRoomDetail(data);
       console.log('✅ Room 세부 정보 로딩 완료');
-      
     } catch (error) {
       console.error('❌ Room 세부 정보 로딩 실패:', error);
-      
+
       Alert.alert(
         '데이터 로딩 실패',
         '서버에서 데이터를 가져올 수 없습니다.\n오프라인 모드로 전환합니다.',
@@ -90,9 +100,9 @@ export default function RoomDetailScreen({ route, navigation }) {
             text: '확인',
             onPress: () => {
               setIsOfflineMode(true);
-            }
-          }
-        ]
+            },
+          },
+        ],
       );
     } finally {
       setIsLoading(false);
@@ -107,23 +117,27 @@ export default function RoomDetailScreen({ route, navigation }) {
   };
 
   // Role 번역 함수
-  const translateRole = (role) => {
+  const translateRole = (role: string): string => {
     switch (role) {
-      case 'ADMIN': return '관리자';
-      case 'EDITOR': return '편집자';
-      case 'VIEWER': return '사용자';
-      default: return '사용자';
+      case 'ADMIN':
+        return '관리자';
+      case 'EDITOR':
+        return '편집자';
+      case 'VIEWER':
+        return '사용자';
+      default:
+        return '사용자';
     }
   };
 
   // 실제 데이터 또는 로딩 상태
-  const residents = roomDetail?.members || [];
-  const cameras = roomDetail?.cameras || [];
-  const roomName = roomDetail?.roomAlias || room.roomAlias || room.name || '구역';
-  
+  const residents: Member[] = roomDetail?.members || [];
+  const cameras: Camera[] = roomDetail?.cameras || [];
+  const roomName: string = roomDetail?.roomAlias || room.roomAlias || '구역';
+
   // 화재 감지 중인 카메라와 안전한 카메라 분리
-  const fireDetectionCameras = cameras.filter(camera => camera.isFireOccurring);
-  const safeCameras = cameras.filter(camera => !camera.isFireOccurring);
+  const fireDetectionCameras = cameras.filter((camera) => camera.isFireOccurring);
+  const safeCameras = cameras.filter((camera) => !camera.isFireOccurring);
 
   const handleInvite = () => {
     setIsAddMemberModalVisible(true);
@@ -140,9 +154,9 @@ export default function RoomDetailScreen({ route, navigation }) {
     }
 
     // role을 서버 형식으로 변환
-    const roleMapping = {
-      '편집자': 'EDITOR',
-      '사용자': 'VIEWER',
+    const roleMapping: Record<string, string> = {
+      편집자: 'EDITOR',
+      사용자: 'VIEWER',
     };
     const serverRole = roleMapping[newMember.role];
 
@@ -154,32 +168,27 @@ export default function RoomDetailScreen({ route, navigation }) {
     try {
       setIsSubmittingMember(true);
       console.log('➕ Room에 사용자 추가 요청...');
-      
+
       await addUserToRoom(room.roomId, newMember.email, serverRole);
-      
-      Alert.alert(
-        '인원 추가 완료',
-        `${newMember.email}님이 추가되었습니다.`,
-        [
-          {
-            text: '확인',
-            onPress: async () => {
-              // 모달 닫고 초기화
-              setIsAddMemberModalVisible(false);
-              setNewMember({ email: '', role: '' });
-              
-              // Room 세부 정보 새로고침
-              await loadRoomDetail();
-            }
-          }
-        ]
-      );
-      
-    } catch (error) {
+
+      Alert.alert('인원 추가 완료', `${newMember.email}님이 추가되었습니다.`, [
+        {
+          text: '확인',
+          onPress: async () => {
+            // 모달 닫고 초기화
+            setIsAddMemberModalVisible(false);
+            setNewMember({ email: '', role: '' });
+
+            // Room 세부 정보 새로고침
+            await loadRoomDetail();
+          },
+        },
+      ]);
+    } catch (error: any) {
       console.error('❌ Room에 사용자 추가 실패:', error);
       Alert.alert(
         '인원 추가 실패',
-        error.message || '서버에 사용자를 추가할 수 없습니다. 다시 시도해주세요.'
+        error.message || '서버에 사용자를 추가할 수 없습니다. 다시 시도해주세요.',
       );
     } finally {
       setIsSubmittingMember(false);
@@ -200,32 +209,27 @@ export default function RoomDetailScreen({ route, navigation }) {
     try {
       setIsSubmittingCamera(true);
       console.log('➕ Room에 카메라 추가 요청...');
-      
+
       await addCameraToRoom(room.roomId, newCamera.deviceUuid, newCamera.name);
-      
-      Alert.alert(
-        '카메라 추가 완료',
-        `${newCamera.name}이(가) 추가되었습니다.`,
-        [
-          {
-            text: '확인',
-            onPress: async () => {
-              // 모달 닫고 초기화
-              setIsAddCameraModalVisible(false);
-              setNewCamera({ name: '', deviceUuid: '' });
-              
-              // Room 세부 정보 새로고침
-              await loadRoomDetail();
-            }
-          }
-        ]
-      );
-      
-    } catch (error) {
+
+      Alert.alert('카메라 추가 완료', `${newCamera.name}이(가) 추가되었습니다.`, [
+        {
+          text: '확인',
+          onPress: async () => {
+            // 모달 닫고 초기화
+            setIsAddCameraModalVisible(false);
+            setNewCamera({ name: '', deviceUuid: '' });
+
+            // Room 세부 정보 새로고침
+            await loadRoomDetail();
+          },
+        },
+      ]);
+    } catch (error: any) {
       console.error('❌ Room에 카메라 추가 실패:', error);
       Alert.alert(
         '카메라 추가 실패',
-        error.message || '서버에 카메라를 추가할 수 없습니다. 다시 시도해주세요.'
+        error.message || '서버에 카메라를 추가할 수 없습니다. 다시 시도해주세요.',
       );
     } finally {
       setIsSubmittingCamera(false);
@@ -237,103 +241,93 @@ export default function RoomDetailScreen({ route, navigation }) {
     setNewCamera({ name: '', deviceUuid: '' });
   };
 
-  const handleDeleteResident = (resident) => {
-    Alert.alert(
-      '멤버 삭제',
-      `${resident.nickname}님을 삭제하시겠습니까?`,
-      [
-        { text: '취소', style: 'cancel' },
-        { 
-          text: '삭제', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              console.log('🗑️ Room에서 사용자 삭제 요청...');
-              
-              await removeUserFromRoom(room.roomId, resident.userId);
-              
-              Alert.alert(
-                '삭제 완료',
-                `${resident.nickname}님이 삭제되었습니다.`,
-                [
-                  {
-                    text: '확인',
-                    onPress: async () => {
-                      // Room 세부 정보 새로고침
-                      await loadRoomDetail();
-                    }
-                  }
-                ]
-              );
-              
-            } catch (error) {
-              console.error('❌ Room에서 사용자 삭제 실패:', error);
-              Alert.alert(
-                '삭제 실패',
-                error.message || '서버에서 사용자를 삭제할 수 없습니다. 다시 시도해주세요.'
-              );
-            }
+  const handleDeleteResident = (resident: Member): void => {
+    Alert.alert('멤버 삭제', `${resident.nickname}님을 삭제하시겠습니까?`, [
+      { text: '취소', style: 'cancel' },
+      {
+        text: '삭제',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            console.log('🗑️ Room에서 사용자 삭제 요청...');
+
+            await removeUserFromRoom(room.roomId, resident.userId);
+
+            Alert.alert('삭제 완료', `${resident.nickname}님이 삭제되었습니다.`, [
+              {
+                text: '확인',
+                onPress: async () => {
+                  // Room 세부 정보 새로고침
+                  await loadRoomDetail();
+                },
+              },
+            ]);
+          } catch (error: any) {
+            console.error('❌ Room에서 사용자 삭제 실패:', error);
+            Alert.alert(
+              '삭제 실패',
+              error.message || '서버에서 사용자를 삭제할 수 없습니다. 다시 시도해주세요.',
+            );
           }
-        }
-      ]
-    );
+        },
+      },
+    ]);
   };
 
-  const handleDeleteCamera = (camera) => {
+  const handleDeleteCamera = (camera: Camera): void => {
     Alert.alert(
       '카메라 삭제',
-      `${camera.cameraEdgeAlias || camera.name}을(를) 삭제하시겠습니까?`,
+      `${camera.cameraEdgeAlias || camera.cameraEdgeAlias}을(를) 삭제하시겠습니까?`,
       [
         { text: '취소', style: 'cancel' },
-        { 
-          text: '삭제', 
+        {
+          text: '삭제',
           style: 'destructive',
           onPress: async () => {
             try {
               console.log('🗑️ Room에서 카메라 삭제 요청...');
-              
+
               // cameraId를 cameraEdgeId로 사용
               await removeCameraFromRoom(room.roomId, camera.cameraId);
-              
+
               Alert.alert(
                 '삭제 완료',
-                `${camera.cameraEdgeAlias || camera.name}이(가) 삭제되었습니다.`,
+                `${camera.cameraEdgeAlias || camera.cameraEdgeAlias}이(가) 삭제되었습니다.`,
                 [
                   {
                     text: '확인',
                     onPress: async () => {
                       // Room 세부 정보 새로고침
                       await loadRoomDetail();
-                    }
-                  }
-                ]
+                    },
+                  },
+                ],
               );
-              
-            } catch (error) {
+            } catch (error: any) {
               console.error('❌ Room에서 카메라 삭제 실패:', error);
               Alert.alert(
                 '삭제 실패',
-                error.message || '서버에서 카메라를 삭제할 수 없습니다. 다시 시도해주세요.'
+                error.message || '서버에서 카메라를 삭제할 수 없습니다. 다시 시도해주세요.',
               );
             }
-          }
-        }
-      ]
+          },
+        },
+      ],
     );
   };
 
-  const handleEditResident = (resident) => {
-    Alert.alert('수정', `${resident.name}의 정보를 수정합니다.`);
+  const handleEditResident = (resident: Member) => {
+    Alert.alert('수정', `${resident.nickname}의 정보를 수정합니다.`);
   };
 
-  const handleEditCamera = (camera) => {
-    Alert.alert('수정', `${camera.name}의 정보를 수정합니다.`);
+  const handleEditCamera = (camera: Camera) => {
+    Alert.alert('수정', `${camera.cameraEdgeAlias}의 정보를 수정합니다.`);
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#FF3B30" />
-      
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -357,15 +351,13 @@ export default function RoomDetailScreen({ route, navigation }) {
         <View style={styles.statDivider} />
         <View style={styles.statBox}>
           <Text style={styles.statLabel}>화재 감지</Text>
-          <Text style={[styles.statValue, styles.dangerText]}>
-            {fireDetectionCameras.length}
-          </Text>
+          <Text style={[styles.statValue, styles.dangerText]}>{fireDetectionCameras.length}</Text>
         </View>
       </View>
 
       {/* Tabs */}
       <View style={styles.tabContainer}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.tab, selectedTab === '재실 인원' && styles.activeTab]}
           onPress={() => setSelectedTab('재실 인원')}
         >
@@ -378,7 +370,7 @@ export default function RoomDetailScreen({ route, navigation }) {
             </Text>
           </View>
         </TouchableOpacity>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.tab, selectedTab === '카메라 목록' && styles.activeTab]}
           onPress={() => setSelectedTab('카메라 목록')}
         >
@@ -394,7 +386,7 @@ export default function RoomDetailScreen({ route, navigation }) {
       </View>
 
       {/* Content */}
-      <ScrollView 
+      <ScrollView
         style={styles.content}
         refreshControl={
           <RefreshControl
@@ -420,11 +412,16 @@ export default function RoomDetailScreen({ route, navigation }) {
                     <View>
                       <View style={styles.residentNameRow}>
                         <Text style={styles.residentName}>{resident.nickname}</Text>
-                        <View style={[
-                          styles.roleBadge, 
-                          resident.role === 'ADMIN' ? styles.adminBadge : 
-                          resident.role === 'EDITOR' ? styles.editorBadge : styles.userBadge
-                        ]}>
+                        <View
+                          style={[
+                            styles.roleBadge,
+                            resident.role === 'ADMIN'
+                              ? styles.adminBadge
+                              : resident.role === 'EDITOR'
+                                ? styles.editorBadge
+                                : styles.userBadge,
+                          ]}
+                        >
                           <Text style={styles.roleText}>{translateRole(resident.role)}</Text>
                         </View>
                       </View>
@@ -432,7 +429,7 @@ export default function RoomDetailScreen({ route, navigation }) {
                     </View>
                   </View>
                   <View style={styles.residentActions}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={styles.deleteIconButton}
                       onPress={() => handleDeleteResident(resident)}
                     >
@@ -459,10 +456,12 @@ export default function RoomDetailScreen({ route, navigation }) {
                 </View>
 
                 {fireDetectionCameras.map((camera) => (
-                  <TouchableOpacity 
-                    key={camera.cameraId} 
+                  <TouchableOpacity
+                    key={camera.cameraId}
                     style={[styles.cameraCard, styles.cameraCardError]}
-                    onPress={() => navigation.navigate('FireAlertDetail', { camera, room: roomDetail })}
+                    onPress={() =>
+                      navigation.navigate('FireAlertDetail', { camera, room: roomDetail! })
+                    }
                     activeOpacity={0.7}
                   >
                     <View style={styles.cameraHeader}>
@@ -476,9 +475,9 @@ export default function RoomDetailScreen({ route, navigation }) {
                       <View style={styles.errorBadge}>
                         <Text style={styles.errorBadgeText}>위험</Text>
                       </View>
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         style={styles.deleteIconButton}
-                        onPress={(e) => {
+                        onPress={(e: GestureResponderEvent) => {
                           e.stopPropagation();
                           handleDeleteCamera(camera);
                         }}
@@ -486,7 +485,7 @@ export default function RoomDetailScreen({ route, navigation }) {
                         <Text style={styles.deleteIcon}>🗑️</Text>
                       </TouchableOpacity>
                     </View>
-                    
+
                     <View style={styles.errorMessageBox}>
                       <Text style={styles.errorIcon}>⚠️</Text>
                       <Text style={styles.errorMessage}>즉시 확인이 필요합니다</Text>
@@ -505,10 +504,12 @@ export default function RoomDetailScreen({ route, navigation }) {
                 </View>
 
                 {safeCameras.map((camera) => (
-                  <TouchableOpacity 
-                    key={camera.cameraId} 
+                  <TouchableOpacity
+                    key={camera.cameraId}
                     style={styles.cameraCard}
-                    onPress={() => navigation.navigate('FireEventHistory', { camera, room: roomDetail })}
+                    onPress={() =>
+                      navigation.navigate('FireEventHistory', { camera, room: roomDetail! })
+                    }
                     activeOpacity={0.7}
                   >
                     <View style={styles.cameraHeader}>
@@ -522,9 +523,9 @@ export default function RoomDetailScreen({ route, navigation }) {
                       <View style={styles.safeBadge}>
                         <Text style={styles.safeBadgeText}>안전</Text>
                       </View>
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         style={styles.deleteIconButton}
-                        onPress={(e) => {
+                        onPress={(e: GestureResponderEvent) => {
                           e.stopPropagation();
                           handleDeleteCamera(camera);
                         }}
@@ -549,7 +550,7 @@ export default function RoomDetailScreen({ route, navigation }) {
       </ScrollView>
 
       {/* Floating Add Button */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.floatingButton}
         onPress={selectedTab === '재실 인원' ? handleInvite : handleAddCamera}
       >
@@ -584,42 +585,50 @@ export default function RoomDetailScreen({ route, navigation }) {
                 placeholderTextColor="#999999"
                 keyboardType="email-address"
                 value={newMember.email}
-                onChangeText={(text) => setNewMember({...newMember, email: text})}
+                onChangeText={(text: string) => setNewMember({ ...newMember, email: text })}
               />
             </View>
 
             <View style={styles.formField}>
               <Text style={styles.fieldLabel}>역할</Text>
               <View style={styles.roleSelector}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[
                     styles.roleOption,
-                    newMember.role === '편집자' && styles.roleOptionSelected
+                    newMember.role === '편집자' && styles.roleOptionSelected,
                   ]}
-                  onPress={() => setNewMember({...newMember, role: '편집자'})}
+                  onPress={() => setNewMember({ ...newMember, role: '편집자' })}
                 >
-                  <Text style={[
-                    styles.roleOptionText,
-                    newMember.role === '편집자' && styles.roleOptionTextSelected
-                  ]}>편집자</Text>
+                  <Text
+                    style={[
+                      styles.roleOptionText,
+                      newMember.role === '편집자' && styles.roleOptionTextSelected,
+                    ]}
+                  >
+                    편집자
+                  </Text>
                 </TouchableOpacity>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[
                     styles.roleOption,
-                    newMember.role === '사용자' && styles.roleOptionSelected
+                    newMember.role === '사용자' && styles.roleOptionSelected,
                   ]}
-                  onPress={() => setNewMember({...newMember, role: '사용자'})}
+                  onPress={() => setNewMember({ ...newMember, role: '사용자' })}
                 >
-                  <Text style={[
-                    styles.roleOptionText,
-                    newMember.role === '사용자' && styles.roleOptionTextSelected
-                  ]}>사용자</Text>
+                  <Text
+                    style={[
+                      styles.roleOptionText,
+                      newMember.role === '사용자' && styles.roleOptionTextSelected,
+                    ]}
+                  >
+                    사용자
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
 
             {/* Action Buttons */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.submitButton, isSubmittingMember && styles.submitButtonDisabled]}
               onPress={handleSubmitMember}
               disabled={isSubmittingMember}
@@ -631,7 +640,7 @@ export default function RoomDetailScreen({ route, navigation }) {
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.cancelButton}
               onPress={handleCancelMember}
               disabled={isSubmittingMember}
@@ -669,7 +678,7 @@ export default function RoomDetailScreen({ route, navigation }) {
                 placeholder="예: 카메라 4"
                 placeholderTextColor="#999999"
                 value={newCamera.name}
-                onChangeText={(text) => setNewCamera({...newCamera, name: text})}
+                onChangeText={(text: string) => setNewCamera({ ...newCamera, name: text })}
               />
             </View>
 
@@ -680,12 +689,12 @@ export default function RoomDetailScreen({ route, navigation }) {
                 placeholder="예: 1234"
                 placeholderTextColor="#999999"
                 value={newCamera.deviceUuid}
-                onChangeText={(text) => setNewCamera({...newCamera, deviceUuid: text})}
+                onChangeText={(text: string) => setNewCamera({ ...newCamera, deviceUuid: text })}
               />
             </View>
 
             {/* Action Buttons */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.submitButton, isSubmittingCamera && styles.submitButtonDisabled]}
               onPress={handleSubmitCamera}
               disabled={isSubmittingCamera}
@@ -697,7 +706,7 @@ export default function RoomDetailScreen({ route, navigation }) {
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.cancelButton}
               onPress={handleCancelCamera}
               disabled={isSubmittingCamera}

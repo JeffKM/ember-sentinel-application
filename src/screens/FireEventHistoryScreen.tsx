@@ -6,11 +6,15 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
-  StatusBar
+  StatusBar,
 } from 'react-native';
+import type { StackScreenProps } from '@react-navigation/stack';
+import type { RootStackParamList } from '../types';
 import { getDemoFireEvents } from '../data/demoData';
 
-export default function FireEventHistoryScreen({ route, navigation }) {
+type Props = StackScreenProps<RootStackParamList, 'FireEventHistory'>;
+
+export default function FireEventHistoryScreen({ route, navigation }: Props) {
   const { camera, room } = route.params;
 
   // 데모 데이터에서 카메라별 화재 이벤트 가져오기
@@ -19,7 +23,7 @@ export default function FireEventHistoryScreen({ route, navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#1a1a2e" />
-      
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -27,7 +31,9 @@ export default function FireEventHistoryScreen({ route, navigation }) {
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>화재 이벤트 기록</Text>
-          <Text style={styles.headerSubtitle}>{camera.cameraEdgeAlias || camera.name || '카메라'} · 201호 중앙</Text>
+          <Text style={styles.headerSubtitle}>
+            {camera.cameraEdgeAlias || '카메라'} · 201호 중앙
+          </Text>
         </View>
         <View style={{ width: 40 }} />
       </View>
@@ -36,7 +42,7 @@ export default function FireEventHistoryScreen({ route, navigation }) {
       <View style={styles.infoBar}>
         <View style={styles.infoItem}>
           <Text style={styles.infoLabel}>구역</Text>
-          <Text style={styles.infoValue}>{room.roomAlias || room.name || '구역'}</Text>
+          <Text style={styles.infoValue}>{room.roomAlias || '구역'}</Text>
         </View>
         <View style={styles.infoDivider} />
         <View style={styles.infoItem}>
@@ -51,11 +57,13 @@ export default function FireEventHistoryScreen({ route, navigation }) {
           <TouchableOpacity
             key={event.id}
             style={styles.eventCard}
-            onPress={() => navigation.navigate('FireEventVideo', { 
-              event, 
-              camera, 
-              room 
-            })}
+            onPress={() =>
+              navigation.navigate('FireEventVideo', {
+                event,
+                camera,
+                room,
+              })
+            }
           >
             <View style={styles.eventIcon}>
               <Text style={styles.warningIcon}>⚠️</Text>

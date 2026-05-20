@@ -1,16 +1,20 @@
 import React, { useEffect, useRef } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Animated,
-  Dimensions,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Dimensions } from 'react-native';
+import * as Notifications from 'expo-notifications';
 
 const { width } = Dimensions.get('window');
 
-export default function PushNotificationBanner({ notification, onClose, onPress }) {
+interface PushNotificationBannerProps {
+  notification: Notifications.Notification | null;
+  onClose?: () => void;
+  onPress?: (notification: Notifications.Notification, data: Record<string, unknown>) => void;
+}
+
+export default function PushNotificationBanner({
+  notification,
+  onClose,
+  onPress,
+}: PushNotificationBannerProps) {
   const slideAnim = useRef(new Animated.Value(-200)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
@@ -57,9 +61,9 @@ export default function PushNotificationBanner({ notification, onClose, onPress 
 
   // 알림 데이터 추출
   const title = notification.request?.content?.title || '화재 알림';
-  const body = notification.request?.content?.body || notification.body || '';
+  const body = notification.request?.content?.body || '';
   const subtitle = notification.request?.content?.subtitle || '긴급 상황 - 즉시 확인 필요';
-  const data = notification.request?.content?.data || {};
+  const data = (notification.request?.content?.data || {}) as Record<string, unknown>;
 
   return (
     <Animated.View
@@ -85,7 +89,7 @@ export default function PushNotificationBanner({ notification, onClose, onPress 
             <Text style={styles.iconText}>🔔</Text>
           </View>
         </View>
-        
+
         <View style={styles.contentContainer}>
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.body} numberOfLines={2}>
@@ -93,7 +97,7 @@ export default function PushNotificationBanner({ notification, onClose, onPress 
           </Text>
           <Text style={styles.subtitle}>{subtitle}</Text>
         </View>
-        
+
         <TouchableOpacity
           style={styles.closeButton}
           onPress={handleClose}
@@ -173,11 +177,3 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 });
-
-
-
-
-
-
-
-
