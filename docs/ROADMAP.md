@@ -1,7 +1,7 @@
 # Ember Sentinel — 개발 로드맵
 
 > **기준 문서**: [PRD.md](./PRD.md) v1.0
-> **최종 갱신일**: 2026-05-22 <!-- v2.4 E2E 데모 흐름 보강 반영 -->
+> **최종 갱신일**: 2026-05-22 <!-- v2.5 LiveKit CCTV 실시간 스트리밍 구현 반영 -->
 > **목표**: 면접 시연 및 포트폴리오 활용을 위한 전체 시스템 개선 실행 계획
 
 ---
@@ -23,7 +23,8 @@
 |  11   | 모니터링 및 CI/CD                  |    P3    |     6     | ✅ 완료 |    6/6    |
 |  12   | 문서 및 README 통일                |    P3    |     3     | ✅ 완료 |    3/3    |
 |  13   | E2E 데모 흐름 보강                 |    P0    |     3     | ✅ 완료 |    3/3    |
-|       | **합계**                           |          |  **50**   |         | **50/50** |
+|  14   | LiveKit CCTV 실시간 스트리밍       |    P0    |     4     | ✅ 완료 |    4/4    |
+|       | **합계**                           |          |  **54**   |         | **54/54** |
 
 ---
 
@@ -292,6 +293,35 @@
 
 ---
 
+## Phase 14: LiveKit CCTV 실시간 스트리밍 ✅
+
+> **우선순위**: P0 | **대상 레포**: `ember-sentinel`
+
+**목표**: 기존 데모 전용 CCTV 화면(CCTVLiveScreen, FireEventVideoScreen)에 LiveKit WebRTC 실시간 스트리밍 + S3 녹화 영상 재생을 통합하되, 서버 연결 불가 시 기존 시뮬레이션으로 자동 폴백
+
+**선행 조건**: Phase 13 (T-050) — LiveKit 스트리밍 API 클라이언트
+
+|  ID   | 태스크                                     | 상태 | 비고                                                                                                                                                                                                                         |
+| :---: | ------------------------------------------ | :--: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T-051 | LiveKit 패키지 설치 및 기반 설정           |  ✅  | `livekit-client`, `@livekit/react-native`, `@livekit/react-native-webrtc`, `@livekit/react-native-expo-plugin`, `@config-plugins/react-native-webrtc@13` 설치. `app.json` plugins 추가, `App.tsx`에 `registerGlobals()` 추가 |
+| T-052 | useLiveKitStream 훅 + 컴포넌트 생성        |  ✅  | `useLiveKitStream.ts` — 7단계 상태 머신(idle→fetching_token→connecting→connected→streaming→reconnecting→error), 자동 재시도 3회, `LiveKitVideoView.tsx`, `ConnectionStatusOverlay.tsx` 신규 생성                             |
+| T-053 | CCTVLiveScreen 실시간 스트리밍 통합        |  ✅  | 3단계 폴백 체인: `fireEventId` 존재 → LiveKit 스트리밍 / 연결 중 → ConnectionStatusOverlay / 실패 → CCTVSimulation. LIVE 배지 색상 동적 변경(streaming: 초록, 그 외: 빨강). `expo-video` 데모 비디오 로직 제거               |
+| T-054 | FireEventVideoScreen S3 Presigned URL 재생 |  ✅  | `getFireEventRecordUrl()` 비동기 로딩 → S3VideoPlayer(expo-video에 URL string 전달) / 로딩 중 ActivityIndicator / URL 실패 시 RecordedVideoSimulation 폴백. 기존 데모 MP4 소스 대신 S3 URL 사용                              |
+
+**완료 기준**: 실기기에서 LiveKit 퍼블리셔 연결 시 실시간 영상 수신, S3 녹화 URL로 재생, 서버 미연결 시 기존 시뮬레이션 정상 동작
+
+**구현 내용**:
+
+- `src/hooks/useLiveKitStream.ts`: LiveKit Room 연결 생명주기 전체 관리 (토큰 발급 → AudioSession → Room 생성 → 이벤트 리스너 → 연결 → 트랙 구독). LiveKit Cloud URL `wss://***REMOVED_LIVEKIT_URL***` 폴백
+- `src/components/LiveKitVideoView.tsx`: `@livekit/react-native`의 `VideoView` 래퍼 (deprecated API이나 `@livekit/components-react` 의존 없이 동작)
+- `src/components/ConnectionStatusOverlay.tsx`: 상태별 UI (로딩 인디케이터 + 메시지 / 에러 + "다시 시도" 버튼)
+- `src/screens/CCTVLiveScreen.tsx`: expo-video 데모 로직 제거, LiveKit 3단계 폴백 체인으로 교체
+- `src/screens/FireEventVideoScreen.tsx`: S3 URL 비동기 페칭 + S3VideoPlayer 내부 컴포넌트 추가
+
+**네이티브 빌드 필요**: LiveKit WebRTC는 Expo Go에서 동작하지 않으므로 `eas build --profile development --platform all` 필수
+
+---
+
 ## Phase 의존성 그래프
 
 ```mermaid
@@ -322,6 +352,7 @@ graph TD
 
     subgraph "P0+ — 데모 완성"
         P13_phase["Phase 13<br/>E2E 데모 흐름 보강"]
+        P14_phase["Phase 14<br/>LiveKit CCTV 스트리밍"]
     end
 
     P1_phase --> P3_phase
@@ -333,6 +364,7 @@ graph TD
     P8_phase --> P12_phase
     P2_phase --> P13_phase
     P6_phase --> P13_phase
+    P13_phase --> P14_phase
 ```
 
 ### 태스크 수준 핵심 의존성
@@ -368,6 +400,11 @@ T-010 ── T-048 (화재 수동 트리거 → 포그라운드 배너 통합)
 T-023 ──┬── T-048 (상태 관리 → 배너 상태)
         └── T-049 (상태 관리 → 알림 탭 네비게이션)
 T-009 ── T-050 (CCTV 데모 영상 → 스트리밍 API 클라이언트)
+
+T-050 ──┬── T-051 (스트리밍 API → LiveKit 패키지 설치)
+        └── T-052 (스트리밍 API → useLiveKitStream 훅)
+T-052 ──┬── T-053 (훅/컴포넌트 → CCTVLiveScreen 통합)
+        └── T-054 (훅/API → FireEventVideoScreen S3 재생)
 ```
 
 ---
@@ -424,3 +461,4 @@ T-009 ── T-050 (CCTV 데모 영상 → 스트리밍 API 클라이언트)
 | 2026-05-21 | v2.2 | 데모 모드 품질 보강 — T-007: 데모 데이터 305호 화재 위치 통일(홈/구역상세/CCTV/평면도 일관성 확보), 오프라인 모드 레이스 컨디션 수정(offlineModeChecked 플래그). T-009: CCTV 시뮬레이션 UI 전면 개선(실내 배경+서버랙/테이블/모니터+불꽃 파티클 10개+연기 파티클 7개+천장 연기+YOLO 바운딩 박스 애니메이션), CCTVParticles.tsx 공유 컴포넌트 분리, FireEventVideoScreen 동일 적용. T-046: README 데모 영상 섹션 추가(docs/demos/ 4개 GIF 플레이스홀더, 녹화 가이드) |
 | 2026-05-22 | v2.3 | EC2 서버 마이그레이션 — 새 AWS 계정(Free Tier) t3.micro EC2(ap-southeast-2, ***REMOVED_IP***) + RDS db.t4g.micro PostgreSQL 구축, Docker Redis 7-alpine 설치, LiveKit Cloud 전환(***REMOVED_LIVEKIT_URL***), Spring Boot JAR 로컬 빌드→SCP 배포, 모바일 앱 API URL 업데이트(api.ts, Info.plist ATS, network_security_config.xml)                                                                                                                           |
 | 2026-05-22 | v2.4 | Phase 13 추가 (T-048~T-050) — E2E 데모 흐름 보강: PushNotificationBanner App.tsx 통합(포그라운드 알림 배너 + 5초 자동 닫기), setupNotificationListeners onNotificationTapped 콜백 분리 + cold start(getLastNotificationResponseAsync) 처리, 서버 FCM 페이로드 파싱(extractNavParamsFromNotification), LiveKit 스트리밍 API 클라이언트(getStreamSubscribeToken + getFireEventRecordUrl) 추가. **50/50 태스크 완료**                                                  |
+| 2026-05-22 | v2.5 | Phase 14 추가 (T-051~T-054) — LiveKit CCTV 실시간 스트리밍: LiveKit 5개 패키지 설치 + app.json plugins + registerGlobals(), useLiveKitStream 훅(7단계 상태 머신 + 자동 재시도 3회) + LiveKitVideoView + ConnectionStatusOverlay, CCTVLiveScreen 3단계 폴백 체인(LiveKit→오버레이→시뮬레이션) + LIVE 배지 동적 색상, FireEventVideoScreen S3 Presigned URL 비동기 로딩 + S3VideoPlayer(expo-video URL 재생) + 시뮬레이션 폴백. **54/54 태스크 완료**                 |
