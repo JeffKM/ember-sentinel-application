@@ -49,9 +49,7 @@ export class ApiError extends Error {
 let refreshPromise: Promise<TokenRefreshResponse> | null = null;
 
 // API 기본 설정 — 환경 변수로 오버라이드 가능
-export const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_BASE_URL ||
-  'http://ec2-35-94-89-39.us-west-2.compute.amazonaws.com:8080';
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://***REMOVED_IP***:8080';
 
 // 에러 분류 헬퍼
 function classifyHttpError(status: number, body: string): ApiError {

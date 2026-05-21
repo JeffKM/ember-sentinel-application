@@ -1,7 +1,7 @@
 # Ember Sentinel — 개발 로드맵
 
 > **기준 문서**: [PRD.md](./PRD.md) v1.0
-> **최종 갱신일**: 2026-05-21 <!-- v2.2 데모 모드 품질 보강 반영 -->
+> **최종 갱신일**: 2026-05-22 <!-- v2.3 EC2 서버 마이그레이션 반영 -->
 > **목표**: 면접 시연 및 포트폴리오 활용을 위한 전체 시스템 개선 실행 계획
 
 ---
@@ -386,3 +386,4 @@ T-017~T-019 ── T-044 (백엔드 테스트 → 백엔드 CI 개선)
 | 2026-05-21 | v2.0 | Phase 11 완료 (T-039~T-044) — 모니터링 및 CI/CD: Actuator 메트릭(health/info/metrics/prometheus) + Micrometer 퍼센타일(P50/P95/P99), logback-spring.xml JSON 구조화 로깅(프로필별 분리) + RequestResponseLoggingFilter, 모바일 CI(ESLint+TS+expo export), 엣지 CI(ruff+mypy), 백엔드 CI JaCoCo PR 코멘트                                                                                                                                                            |
 | 2026-05-21 | v2.1 | Phase 12 완료 (T-045~T-047) — 문서 및 README 통일: README.md 전면 개편(배지 7개 + 시스템 아키텍처 Mermaid + 5개 레포 관계도 + 기술 스택 4카테고리 + 9화면 상세 + ADR/다이어그램 링크), Postman Collection v2.1(6폴더 17 API + Actuator 모니터링), **전체 로드맵 47/47 태스크 완료** 🎉                                                                                                                                                                              |
 | 2026-05-21 | v2.2 | 데모 모드 품질 보강 — T-007: 데모 데이터 305호 화재 위치 통일(홈/구역상세/CCTV/평면도 일관성 확보), 오프라인 모드 레이스 컨디션 수정(offlineModeChecked 플래그). T-009: CCTV 시뮬레이션 UI 전면 개선(실내 배경+서버랙/테이블/모니터+불꽃 파티클 10개+연기 파티클 7개+천장 연기+YOLO 바운딩 박스 애니메이션), CCTVParticles.tsx 공유 컴포넌트 분리, FireEventVideoScreen 동일 적용. T-046: README 데모 영상 섹션 추가(docs/demos/ 4개 GIF 플레이스홀더, 녹화 가이드) |
+| 2026-05-22 | v2.3 | EC2 서버 마이그레이션 — 새 AWS 계정(Free Tier) t3.micro EC2(ap-southeast-2, ***REMOVED_IP***) + RDS db.t4g.micro PostgreSQL 구축, Docker Redis 7-alpine 설치, LiveKit Cloud 전환(***REMOVED_LIVEKIT_URL***), Spring Boot JAR 로컬 빌드→SCP 배포, 모바일 앱 API URL 업데이트(api.ts, Info.plist ATS, network_security_config.xml)                                                                                                                           |
