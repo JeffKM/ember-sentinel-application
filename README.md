@@ -188,40 +188,44 @@ graph LR
 
 ## 데모 영상
 
+### E2E 플로우 (실기기 Android APK)
+
 <table>
   <tr>
     <td align="center">
-      <img src="docs/demos/login-demo.gif" width="250" />
-      <br /><b>소셜 로그인</b>
-      <br /><sub>Google/Kakao 로그인 → 홈 화면 진입</sub>
-    </td>
-    <td align="center">
       <img src="docs/demos/fire-alert-demo.gif" width="250" />
-      <br /><b>화재 알림</b>
-      <br /><sub>푸시 알림 수신 → 화재 상세 화면</sub>
+      <br /><b>화재 감지 → 푸시 알림</b>
+      <br /><sub>엣지 YOLO 감지 → FCM 알림 → 화재 상세</sub>
     </td>
-  </tr>
-  <tr>
     <td align="center">
       <img src="docs/demos/cctv-live-demo.gif" width="250" />
-      <br /><b>CCTV 실시간</b>
-      <br /><sub>WebRTC 실시간 스트리밍 시청</sub>
+      <br /><b>실시간 CCTV 스트리밍</b>
+      <br /><sub>LiveKit WebRTC 실시간 영상 수신</sub>
     </td>
     <td align="center">
-      <img src="docs/demos/full-flow-demo.gif" width="250" />
-      <br /><b>전체 플로우</b>
-      <br /><sub>화재 감지 → 알림 → CCTV → 위치 확인</sub>
+      <img src="docs/demos/recording-playback-demo.gif" width="250" />
+      <br /><b>녹화 영상 재생</b>
+      <br /><sub>S3 Presigned URL 녹화 재생</sub>
     </td>
   </tr>
 </table>
 
-> GIF 녹화 방법은 아래 명령어를 참고하세요:
+### E2E 동작 검증 시나리오
+
+```
+1. macOS에서 웹캠 시뮬레이터 실행 → YOLO 화재/연기 감지
+2. 실기기(Android)에서 FCM 푸시 알림 수신
+3. 알림 탭 → CCTVLiveScreen에서 LiveKit WebRTC 실시간 영상 확인
+4. 스트리밍 종료 후 FireEventHistory → S3 녹화 영상 재생
+```
+
+> GIF 녹화 방법: [docs/demos/README.md](docs/demos/README.md) 참조
 >
 > ```bash
-> # iOS 시뮬레이터 녹화
-> xcrun simctl io booted recordVideo demo.mp4
-> # MP4 → GIF 변환 (ffmpeg)
-> ffmpeg -i demo.mp4 -vf "fps=15,scale=300:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 demo.gif
+> # Android 실기기 미러링 + 녹화 (scrcpy)
+> scrcpy --record demo-raw.mp4
+> # MP4 → GIF 변환
+> ffmpeg -i demo-raw.mp4 -vf "fps=15,scale=300:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 demo.gif
 > ```
 
 ---
@@ -311,9 +315,15 @@ npm run ios                   # expo run:ios
 # 웹 (번들링 검증)
 npx expo export --platform web
 
-# EAS 빌드 (프로덕션)
+# EAS 빌드 — 실기기 APK (LiveKit WebRTC 동작에 필수)
+eas build --platform android --profile preview
+
+# EAS 빌드 (프로덕션 — Google Play Store용)
 eas build --platform android --profile production
 ```
+
+> LiveKit WebRTC는 네이티브 빌드 필수 — Expo Go에서 동작하지 않습니다.
+> 상세 가이드: [docs/eas-build-guide.md](docs/eas-build-guide.md)
 
 ---
 

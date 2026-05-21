@@ -1,7 +1,7 @@
 # Ember Sentinel — 개발 로드맵
 
 > **기준 문서**: [PRD.md](./PRD.md) v1.0
-> **최종 갱신일**: 2026-05-22 <!-- v2.5 LiveKit CCTV 실시간 스트리밍 구현 반영 -->
+> **최종 갱신일**: 2026-05-22 <!-- v2.6 Phase 15 프로덕션 데모 환경 구축 추가 -->
 > **목표**: 면접 시연 및 포트폴리오 활용을 위한 전체 시스템 개선 실행 계획
 
 ---
@@ -24,7 +24,8 @@
 |  12   | 문서 및 README 통일                |    P3    |     3     | ✅ 완료 |    3/3    |
 |  13   | E2E 데모 흐름 보강                 |    P0    |     3     | ✅ 완료 |    3/3    |
 |  14   | LiveKit CCTV 실시간 스트리밍       |    P0    |     4     | ✅ 완료 |    4/4    |
-|       | **합계**                           |          |  **54**   |         | **54/54** |
+|  15   | 프로덕션 데모 환경 구축            |    P0    |    16     | 🔄 진행 |   1/16    |
+|       | **합계**                           |          |  **70**   |         | **55/70** |
 
 ---
 
@@ -322,6 +323,88 @@
 
 ---
 
+## Phase 15: 프로덕션 데모 환경 구축
+
+> **우선순위**: P0 | **대상 레포**: 크로스 레포 (ember-sentinel, edge-IoT, ember-sentinel-server)
+
+**목표**: 면접/취업 준비를 위해 전체 시스템이 실제로 E2E 동작하는 상태를 만들고, 이를 증명하는 데모 자료(GIF/스크린샷) 확보
+
+**선행 조건**: Phase 14 (T-051~T-054) — LiveKit WebRTC 코드 완성
+
+### 영역 1: 엣지 대체 — 노트북 웹캠 시뮬레이터 (edge-IoT 레포)
+
+|  ID   | 태스크                                        | 상태 | 비고                                                                    |
+| :---: | --------------------------------------------- | :--: | ----------------------------------------------------------------------- |
+| T-055 | YOLO 모델 준비 및 macOS 호환 검증             |  ⬜  | macOS에서 `.pt` 모델 직접 사용, LiveKit Python SDK ARM64 호환성 확인    |
+| T-056 | config.production.yaml 프로덕션 프로필 추가   |  ⬜  | EC2 API URL + LiveKit Cloud URL, `--config config.production.yaml` 옵션 |
+| T-057 | macOS 웹캠 시뮬레이터 실행 가이드 작성        |  ⬜  | edge-IoT 레포에 macOS 실행 가이드 문서화                                |
+| T-058 | 샘플 화재 영상 준비 (웹캠 없이도 테스트 가능) |  ⬜  | 화재/연기 샘플 MP4 영상으로 웹캠 대체 테스트                            |
+
+### 영역 2: EAS Build 실기기 배포 (ember-sentinel 레포)
+
+|  ID   | 태스크                                    | 상태 | 비고                                                                         |
+| :---: | ----------------------------------------- | :--: | ---------------------------------------------------------------------------- |
+| T-059 | eas.json 환경변수 + APK 빌드 설정         |  ✅  | preview 프로필에 `buildType: apk` + `EXPO_PUBLIC_API_BASE_URL` 환경변수 추가 |
+| T-060 | google-services.json 및 EAS Secrets 준비  |  ⬜  | Firebase Console에서 다운로드 → 프로젝트 루트 배치 → EAS Secrets 등록        |
+| T-061 | EAS Build Android APK 빌드 및 실기기 설치 |  ⬜  | `eas build --platform android --profile preview` → 실기기 설치 확인          |
+| T-062 | iOS TestFlight 배포 (선택)                |  ⬜  | Apple Developer 계정 필요, P2 우선순위                                       |
+
+### 영역 3: E2E 동작 검증 (크로스 레포)
+
+|  ID   | 태스크                                          | 상태 | 비고                                                  |
+| :---: | ----------------------------------------------- | :--: | ----------------------------------------------------- |
+| T-063 | 백엔드에 시뮬레이터용 카메라 디바이스 등록      |  ⬜  | 서버에 macOS 시뮬레이터 디바이스 UUID 등록            |
+| T-064 | 실시간 스트리밍 E2E 검증                        |  ⬜  | 시뮬레이터 → LiveKit Cloud → 앱 실시간 영상 수신 확인 |
+| T-065 | Egress 녹화 → S3 → Presigned URL → 앱 재생 검증 |  ⬜  | 녹화 종료 후 S3 저장 → 앱에서 재생 확인               |
+| T-066 | FCM 푸시 알림 실기기 E2E 검증                   |  ⬜  | 시뮬레이터 화재 감지 → 실기기 FCM 알림 수신 확인      |
+
+### 영역 4: 데모 GIF/스크린샷 (ember-sentinel 레포)
+
+|  ID   | 태스크                              | 상태 | 비고                                                       |
+| :---: | ----------------------------------- | :--: | ---------------------------------------------------------- |
+| T-067 | 실기기에서 9개 화면 스크린샷 캡처   |  ⬜  | scrcpy/ADB로 실기기 화면 캡처 → docs/screenshots/ 교체     |
+| T-068 | 핵심 플로우 GIF 3개 녹화            |  ⬜  | 화재 감지→알림, CCTV 스트리밍, 녹화 재생 (scrcpy + ffmpeg) |
+| T-069 | README 데모 섹션 업데이트           |  ✅  | E2E 데모 GIF 3개 참조, 동작 검증 시나리오 표시             |
+| T-070 | 전체 프로젝트 포털 README 데모 보강 |  ⬜  | 실제 동작 GIF로 교체, P2 우선순위                          |
+
+### 실행 순서
+
+```
+Week 1 — 인프라 준비:
+  T-055, T-056, T-058 (엣지 시뮬레이터 macOS 호환)
+  T-059 ✅, T-060, T-061 (EAS 빌드)
+  T-063 (서버 디바이스 등록)
+
+Week 2 — E2E 검증:
+  T-064 (실시간 스트리밍)
+  T-065 (녹화 재생)
+  T-066 (푸시 알림)
+
+Week 3 — 데모 자료:
+  T-057 (실행 가이드)
+  T-067, T-068, T-069 ✅ (GIF/스크린샷/README)
+```
+
+### 리스크 및 대응
+
+| 리스크                                | 대응                                           |
+| ------------------------------------- | ---------------------------------------------- |
+| LiveKit Python SDK macOS ARM64 미지원 | Docker x86_64 에뮬레이션 또는 ffmpeg RTMP 폴백 |
+| LiveKit Cloud free tier Egress 미지원 | EC2에 LiveKit self-hosted Docker 배포          |
+| EAS Build 실패 (네이티브 의존성)      | `npx expo prebuild` 후 로컬 빌드로 전환        |
+
+### 완료 기준
+
+모든 작업 완료 후 아래 시나리오가 E2E로 동작해야 함:
+
+1. macOS에서 시뮬레이터 실행 → 화재 감지
+2. 실기기(Android)에서 FCM 푸시 알림 수신
+3. 알림 탭 → CCTVLiveScreen에서 실시간 영상 확인
+4. 스트리밍 종료 후 FireEventHistory → 녹화 영상 재생
+5. 이 전체 플로우가 GIF로 캡처되어 README에 표시
+
+---
+
 ## Phase 의존성 그래프
 
 ```mermaid
@@ -355,6 +438,10 @@ graph TD
         P14_phase["Phase 14<br/>LiveKit CCTV 스트리밍"]
     end
 
+    subgraph "P0++ — 프로덕션 데모"
+        P15_phase["Phase 15<br/>프로덕션 데모 환경"]
+    end
+
     P1_phase --> P3_phase
     P1_phase --> P5_phase
     P1_phase --> P9_phase
@@ -365,6 +452,8 @@ graph TD
     P2_phase --> P13_phase
     P6_phase --> P13_phase
     P13_phase --> P14_phase
+    P14_phase --> P15_phase
+    P3_phase --> P15_phase
 ```
 
 ### 태스크 수준 핵심 의존성
@@ -405,6 +494,18 @@ T-050 ──┬── T-051 (스트리밍 API → LiveKit 패키지 설치)
         └── T-052 (스트리밍 API → useLiveKitStream 훅)
 T-052 ──┬── T-053 (훅/컴포넌트 → CCTVLiveScreen 통합)
         └── T-054 (훅/API → FireEventVideoScreen S3 재생)
+
+T-054 ── T-055 (LiveKit 코드 완성 → macOS 시뮬레이터 호환 검증)
+T-055 ── T-056 (모델 준비 → 프로덕션 설정)
+T-056 ── T-064 (설정 완료 → E2E 스트리밍 검증)
+T-059 ── T-061 (빌드 설정 → APK 빌드)
+T-060 ── T-061 (Firebase 설정 → APK 빌드)
+T-061 ──┬── T-064 (실기기 → 스트리밍 검증)
+        ├── T-065 (실기기 → 녹화 재생 검증)
+        └── T-066 (실기기 → 푸시 알림 검증)
+T-064 ── T-068 (E2E 동작 → GIF 캡처)
+T-067 ── T-069 (스크린샷 → README 업데이트)
+T-068 ── T-069 (GIF → README 업데이트)
 ```
 
 ---
@@ -413,15 +514,16 @@ T-052 ──┬── T-053 (훅/컴포넌트 → CCTVLiveScreen 통합)
 
 > PRD 섹션 7 기반 — 3가지 시나리오를 모두 중단 없이 실행할 수 있어야 성공
 
-### 시나리오 1: 전체 데모 (10분)
+### 시나리오 1: 전체 E2E 데모 — 실기기 (10분) [Phase 15]
 
-- [ ] Docker Compose로 백엔드 기동 완료 (Phase 1)
-- [ ] 모바일 앱 실행 → 소셜 로그인 시연
-- [ ] 홈 화면에서 Room 목록 확인
-- [ ] 엣지 시뮬레이터로 화재 감지 트리거 (Phase 3)
-- [ ] 모바일 앱에서 푸시 알림 수신 확인
-- [ ] 실시간 CCTV 영상 시청
-- [ ] 화재 이벤트 이력 → 녹화 영상 재생
+- [ ] EC2 백엔드 서버 가동 확인 (`***REMOVED_IP***:8080`)
+- [ ] macOS 웹캠 시뮬레이터 실행 준비 (T-055, T-056)
+- [ ] Android 실기기에서 APK 설치 및 앱 실행 (T-061)
+- [ ] 소셜 로그인 시연 (Google/Kakao)
+- [ ] 홈 화면에서 서버 Room 목록 확인
+- [ ] 시뮬레이터에서 화재 감지 트리거 → 실기기 FCM 알림 수신 (T-066)
+- [ ] 알림 탭 → CCTV 실시간 WebRTC 영상 시청 (T-064)
+- [ ] 스트리밍 종료 → 녹화 영상 S3 재생 (T-065)
 - [ ] 아키텍처 다이어그램으로 시스템 설명 (Phase 8)
 
 ### 시나리오 2: 오프라인 데모 (5분)
@@ -462,3 +564,4 @@ T-052 ──┬── T-053 (훅/컴포넌트 → CCTVLiveScreen 통합)
 | 2026-05-22 | v2.3 | EC2 서버 마이그레이션 — 새 AWS 계정(Free Tier) t3.micro EC2(ap-southeast-2, ***REMOVED_IP***) + RDS db.t4g.micro PostgreSQL 구축, Docker Redis 7-alpine 설치, LiveKit Cloud 전환(***REMOVED_LIVEKIT_URL***), Spring Boot JAR 로컬 빌드→SCP 배포, 모바일 앱 API URL 업데이트(api.ts, Info.plist ATS, network_security_config.xml)                                                                                                                           |
 | 2026-05-22 | v2.4 | Phase 13 추가 (T-048~T-050) — E2E 데모 흐름 보강: PushNotificationBanner App.tsx 통합(포그라운드 알림 배너 + 5초 자동 닫기), setupNotificationListeners onNotificationTapped 콜백 분리 + cold start(getLastNotificationResponseAsync) 처리, 서버 FCM 페이로드 파싱(extractNavParamsFromNotification), LiveKit 스트리밍 API 클라이언트(getStreamSubscribeToken + getFireEventRecordUrl) 추가. **50/50 태스크 완료**                                                  |
 | 2026-05-22 | v2.5 | Phase 14 추가 (T-051~T-054) — LiveKit CCTV 실시간 스트리밍: LiveKit 5개 패키지 설치 + app.json plugins + registerGlobals(), useLiveKitStream 훅(7단계 상태 머신 + 자동 재시도 3회) + LiveKitVideoView + ConnectionStatusOverlay, CCTVLiveScreen 3단계 폴백 체인(LiveKit→오버레이→시뮬레이션) + LIVE 배지 동적 색상, FireEventVideoScreen S3 Presigned URL 비동기 로딩 + S3VideoPlayer(expo-video URL 재생) + 시뮬레이션 폴백. **54/54 태스크 완료**                 |
+| 2026-05-22 | v2.6 | Phase 15 추가 (T-055~T-070) — 프로덕션 데모 환경 구축: eas.json preview APK 빌드 + 환경변수 설정(T-059), EAS Build 실기기 배포 가이드(docs/eas-build-guide.md), 데모 GIF 캡처 워크플로우(docs/demos/ scrcpy+ffmpeg 가이드), README 데모 섹션 E2E 기준 업데이트                                                                                                                                                                                                      |
