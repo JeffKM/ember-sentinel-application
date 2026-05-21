@@ -473,6 +473,7 @@ export const initializeFCMToken = async (): Promise<string | null> => {
 // 푸시 알림 수신 리스너 설정
 export const setupNotificationListeners = (
   onNotificationReceived?: (notification: Notifications.Notification) => void,
+  onNotificationTapped?: (notification: Notifications.Notification) => void,
 ): void => {
   // 포그라운드에서 알림 수신 시
   Notifications.addNotificationReceivedListener((notification) => {
@@ -499,7 +500,7 @@ export const setupNotificationListeners = (
     }
   });
 
-  // 알림 탭 시
+  // 알림 탭 시 (백그라운드/포그라운드 공통)
   Notifications.addNotificationResponseReceivedListener((response) => {
     const timestamp = new Date().toLocaleTimeString();
     console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -520,8 +521,8 @@ export const setupNotificationListeners = (
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
     const notification = response.notification;
-    if (onNotificationReceived) {
-      onNotificationReceived(notification);
+    if (onNotificationTapped) {
+      onNotificationTapped(notification);
     }
   });
 };

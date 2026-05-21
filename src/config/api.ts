@@ -433,3 +433,43 @@ export const saveFCMToken = async (fcmToken: string): Promise<unknown> => {
   console.log('✅ FCM 토큰 서버 저장 완료');
   return response;
 };
+
+// ─── 스트리밍 API ───────────────────────────────────────
+
+// 스트리밍 구독 토큰 발급 (LiveKit WebRTC 연결용)
+export interface StreamTokenResponse {
+  token: string;
+  url?: string;
+}
+
+export const getStreamSubscribeToken = async (
+  fireEventId: number,
+): Promise<StreamTokenResponse> => {
+  console.log(`📹 스트리밍 토큰 요청 - fireEventId: ${fireEventId}`);
+  const headers = await getAuthHeaders();
+  const response = await apiRequest<StreamTokenResponse>(
+    `/fire-event/${fireEventId}/stream/subscribe`,
+    {
+      method: 'GET',
+      headers,
+    },
+  );
+  console.log('✅ 스트리밍 토큰 발급 완료');
+  return response!;
+};
+
+// 화재 이벤트 녹화 영상 URL 조회
+export interface RecordUrlResponse {
+  recordUrl: string;
+}
+
+export const getFireEventRecordUrl = async (fireEventId: number): Promise<RecordUrlResponse> => {
+  console.log(`🎥 녹화 영상 URL 요청 - fireEventId: ${fireEventId}`);
+  const headers = await getAuthHeaders();
+  const response = await apiRequest<RecordUrlResponse>(`/fire-event/${fireEventId}/record`, {
+    method: 'GET',
+    headers,
+  });
+  console.log('✅ 녹화 영상 URL 조회 완료');
+  return response!;
+};

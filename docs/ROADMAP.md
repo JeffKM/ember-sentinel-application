@@ -1,7 +1,7 @@
 # Ember Sentinel — 개발 로드맵
 
 > **기준 문서**: [PRD.md](./PRD.md) v1.0
-> **최종 갱신일**: 2026-05-22 <!-- v2.3 EC2 서버 마이그레이션 반영 -->
+> **최종 갱신일**: 2026-05-22 <!-- v2.4 E2E 데모 흐름 보강 반영 -->
 > **목표**: 면접 시연 및 포트폴리오 활용을 위한 전체 시스템 개선 실행 계획
 
 ---
@@ -22,7 +22,8 @@
 |  10   | AI 모델 시각화 및 실험             |    P3    |     4     | ✅ 완료 |    4/4    |
 |  11   | 모니터링 및 CI/CD                  |    P3    |     6     | ✅ 완료 |    6/6    |
 |  12   | 문서 및 README 통일                |    P3    |     3     | ✅ 완료 |    3/3    |
-|       | **합계**                           |          |  **47**   |         | **47/47** |
+|  13   | E2E 데모 흐름 보강                 |    P0    |     3     | ✅ 완료 |    3/3    |
+|       | **합계**                           |          |  **50**   |         | **50/50** |
 
 ---
 
@@ -267,6 +268,30 @@
 
 ---
 
+## Phase 13: E2E 데모 흐름 보강 ✅
+
+> **우선순위**: P0 | **대상 레포**: `ember-sentinel`
+
+**목표**: 캡스톤 데모에서 로그인 → 푸시 알림 → CCTV 스트리밍까지 끊김 없는 E2E 흐름 확보
+
+**선행 조건**: Phase 2 (T-010), Phase 6 (T-021~T-023)
+
+|  ID   | 태스크                                    | 상태 | 비고                                                                                                                                                                      |
+| :---: | ----------------------------------------- | :--: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T-048 | 포그라운드 알림 배너 통합                 |  ✅  | `PushNotificationBanner`를 `App.tsx`에 렌더링, `currentNotification` 상태 + 5초 자동 닫기 타이머, 배너 탭 시 `FireAlertDetail` 자동 네비게이션                            |
+| T-049 | 백그라운드 알림 탭 → 화면 자동 네비게이션 |  ✅  | `setupNotificationListeners`에 `onNotificationTapped` 콜백 분리, `getLastNotificationResponseAsync`로 cold start 처리, 서버 FCM 페이로드 + 로컬 시뮬레이션 알림 모두 파싱 |
+| T-050 | LiveKit 스트리밍 토큰 API 클라이언트      |  ✅  | `api.ts`에 `getStreamSubscribeToken(fireEventId)`, `getFireEventRecordUrl(fireEventId)` 추가, `StreamTokenResponse`/`RecordUrlResponse` 인터페이스 정의                   |
+
+**완료 기준**: 포그라운드 알림 배너 표시 + 배너/시스템 알림 탭 시 FireAlertDetail 자동 이동 + 스트리밍 API 호출 가능
+
+**구현 내용**:
+
+- `App.tsx`: `extractNavParamsFromNotification()` 함수로 서버 FCM 페이로드(`type`, `fireEventId`, `cameraId` 등) 및 로컬 시뮬레이션 알림 데이터를 통합 파싱
+- `src/config/firebase.ts`: `setupNotificationListeners(onReceived, onTapped)` — 포그라운드 수신과 알림 탭을 독립 콜백으로 분리
+- `src/config/api.ts`: `getStreamSubscribeToken()`, `getFireEventRecordUrl()` — LiveKit WebRTC 전체 통합 전 서버 연동 검증용 API 클라이언트
+
+---
+
 ## Phase 의존성 그래프
 
 ```mermaid
@@ -295,6 +320,10 @@ graph TD
         P12_phase["Phase 12<br/>README 통일"]
     end
 
+    subgraph "P0+ — 데모 완성"
+        P13_phase["Phase 13<br/>E2E 데모 흐름 보강"]
+    end
+
     P1_phase --> P3_phase
     P1_phase --> P5_phase
     P1_phase --> P9_phase
@@ -302,6 +331,8 @@ graph TD
     P5_phase --> P11_phase
     P6_phase --> P11_phase
     P8_phase --> P12_phase
+    P2_phase --> P13_phase
+    P6_phase --> P13_phase
 ```
 
 ### 태스크 수준 핵심 의존성
@@ -332,6 +363,11 @@ T-036 ── T-037 (모델 비교 → 데이터 증강 실험)
 T-039 ── T-041 (Actuator → 응답 시간 측정)
 T-032 ── T-046 (시퀀스 다이어그램 → 포털 README)
 T-017~T-019 ── T-044 (백엔드 테스트 → 백엔드 CI 개선)
+
+T-010 ── T-048 (화재 수동 트리거 → 포그라운드 배너 통합)
+T-023 ──┬── T-048 (상태 관리 → 배너 상태)
+        └── T-049 (상태 관리 → 알림 탭 네비게이션)
+T-009 ── T-050 (CCTV 데모 영상 → 스트리밍 API 클라이언트)
 ```
 
 ---
@@ -387,3 +423,4 @@ T-017~T-019 ── T-044 (백엔드 테스트 → 백엔드 CI 개선)
 | 2026-05-21 | v2.1 | Phase 12 완료 (T-045~T-047) — 문서 및 README 통일: README.md 전면 개편(배지 7개 + 시스템 아키텍처 Mermaid + 5개 레포 관계도 + 기술 스택 4카테고리 + 9화면 상세 + ADR/다이어그램 링크), Postman Collection v2.1(6폴더 17 API + Actuator 모니터링), **전체 로드맵 47/47 태스크 완료** 🎉                                                                                                                                                                              |
 | 2026-05-21 | v2.2 | 데모 모드 품질 보강 — T-007: 데모 데이터 305호 화재 위치 통일(홈/구역상세/CCTV/평면도 일관성 확보), 오프라인 모드 레이스 컨디션 수정(offlineModeChecked 플래그). T-009: CCTV 시뮬레이션 UI 전면 개선(실내 배경+서버랙/테이블/모니터+불꽃 파티클 10개+연기 파티클 7개+천장 연기+YOLO 바운딩 박스 애니메이션), CCTVParticles.tsx 공유 컴포넌트 분리, FireEventVideoScreen 동일 적용. T-046: README 데모 영상 섹션 추가(docs/demos/ 4개 GIF 플레이스홀더, 녹화 가이드) |
 | 2026-05-22 | v2.3 | EC2 서버 마이그레이션 — 새 AWS 계정(Free Tier) t3.micro EC2(ap-southeast-2, ***REMOVED_IP***) + RDS db.t4g.micro PostgreSQL 구축, Docker Redis 7-alpine 설치, LiveKit Cloud 전환(***REMOVED_LIVEKIT_URL***), Spring Boot JAR 로컬 빌드→SCP 배포, 모바일 앱 API URL 업데이트(api.ts, Info.plist ATS, network_security_config.xml)                                                                                                                           |
+| 2026-05-22 | v2.4 | Phase 13 추가 (T-048~T-050) — E2E 데모 흐름 보강: PushNotificationBanner App.tsx 통합(포그라운드 알림 배너 + 5초 자동 닫기), setupNotificationListeners onNotificationTapped 콜백 분리 + cold start(getLastNotificationResponseAsync) 처리, 서버 FCM 페이로드 파싱(extractNavParamsFromNotification), LiveKit 스트리밍 API 클라이언트(getStreamSubscribeToken + getFireEventRecordUrl) 추가. **50/50 태스크 완료**                                                  |

@@ -1,7 +1,10 @@
 import React from 'react';
+import { View, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import type { NavigationContainerRef } from '@react-navigation/native';
+import type { Notification } from 'expo-notifications';
+import * as Notifications from 'expo-notifications';
 import type { RootStackParamList } from './src/types';
 
 // Import screens
@@ -15,6 +18,9 @@ import FireLocationScreen from './src/screens/FireLocationScreen';
 import FireEventHistoryScreen from './src/screens/FireEventHistoryScreen';
 import FireEventVideoScreen from './src/screens/FireEventVideoScreen';
 
+// Import components
+import PushNotificationBanner from './src/components/PushNotificationBanner';
+
 // Import context & FCM
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { initializeFCMToken, setupNotificationListeners } from './src/config/firebase';
@@ -22,14 +28,101 @@ import { sendFireSimulationNotification } from './src/utils/pushNotification';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
+// 알림 데이터에서 네비게이션 파라미터 추출
+function extractNavParamsFromNotification(notification: Notification) {
+  const data = (notification.request?.content?.data || {}) as Record<string, unknown>;
+
+  // 서버 FCM 페이로드: type, fireEventId, cameraId, roomId 등
+  if (data.type === 'fire_alert' || data.fireEventId) {
+    return {
+      screen: 'FireAlertDetail' as const,
+      params: {
+        camera: {
+          cameraId: Number(data.cameraId) || 0,
+          deviceUuid: (data.deviceUuid as string) || 'unknown',
+          cameraEdgeAlias: (data.cameraAlias as string) || '화재 감지 카메라',
+          locationFloor: (data.floor as string) || '',
+          roomNumber: (data.roomNumber as string) || '',
+          isFireOccurring: true,
+          fireEventId: Number(data.fireEventId) || null,
+        },
+        room: {
+          roomId: Number(data.roomId) || 0,
+          roomAlias: (data.roomAlias as string) || '화재 발생 구역',
+          buildingName: (data.buildingName as string) || '',
+          floor: (data.floor as string) || '',
+          roomNumber: (data.roomNumber as string) || '',
+          cameraCountPerRoom: 1,
+          fireEventCountPerRoom: 1,
+        },
+      },
+    };
+  }
+
+  // 로컬 시뮬레이션 알림: camera, room 객체가 data에 직접 포함
+  if (data.camera && data.room) {
+    return {
+      screen: 'FireAlertDetail' as const,
+      params: {
+        camera: data.camera as RootStackParamList['FireAlertDetail']['camera'],
+        room: data.room as RootStackParamList['FireAlertDetail']['room'],
+      },
+    };
+  }
+
+  return null;
+}
+
 function AppNavigator() {
   const { isLoggedIn, isLoading, userRole, login, logout } = useAuth();
   const navigationRef = React.useRef<NavigationContainerRef<RootStackParamList>>(null);
+  const [currentNotification, setCurrentNotification] = React.useState<Notification | null>(null);
+  const bannerTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 배너 표시 (5초 후 자동 닫기)
+  const showBanner = React.useCallback((notification: Notification) => {
+    // 이전 타이머 제거
+    if (bannerTimerRef.current) {
+      clearTimeout(bannerTimerRef.current);
+    }
+    setCurrentNotification(notification);
+    bannerTimerRef.current = setTimeout(() => {
+      setCurrentNotification(null);
+      bannerTimerRef.current = null;
+    }, 5000);
+  }, []);
+
+  // 알림 탭 시 화면 이동 처리
+  const handleNotificationNavigation = React.useCallback((notification: Notification) => {
+    const navParams = extractNavParamsFromNotification(notification);
+    if (navParams && navigationRef.current) {
+      console.log('📍 알림 탭 → 화면 이동:', navParams.screen);
+      navigationRef.current.navigate(navParams.screen, navParams.params);
+    }
+  }, []);
 
   React.useEffect(() => {
-    // FCM 알림 리스너 설정
-    setupNotificationListeners((notification) => {
-      console.log('알림 수신:', notification);
+    // FCM 알림 리스너 설정 — 포그라운드 수신 + 알림 탭
+    setupNotificationListeners(
+      // 포그라운드 알림 수신 → 배너 표시
+      (notification) => {
+        console.log('알림 수신 → 배너 표시');
+        showBanner(notification);
+      },
+      // 알림 탭 (백그라운드/포그라운드) → 화면 이동
+      (notification) => {
+        // 배너 닫기
+        setCurrentNotification(null);
+        handleNotificationNavigation(notification);
+      },
+    );
+
+    // Cold start: 앱이 알림 탭으로 열린 경우 처리
+    Notifications.getLastNotificationResponseAsync().then((response) => {
+      if (response) {
+        console.log('🧊 Cold start 알림 감지');
+        handleNotificationNavigation(response.notification);
+      }
     });
 
     // 앱 시작 시 FCM 토큰 초기화 시도
@@ -55,7 +148,13 @@ function AppNavigator() {
     };
 
     initFCM();
-  }, []);
+
+    return () => {
+      if (bannerTimerRef.current) {
+        clearTimeout(bannerTimerRef.current);
+      }
+    };
+  }, [showBanner, handleNotificationNavigation]);
 
   // DEV 테스트 헬퍼 (CDP에서 호출 가능)
   React.useEffect(
@@ -110,29 +209,57 @@ function AppNavigator() {
   }
 
   return (
-    <NavigationContainer ref={navigationRef}>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {!isLoggedIn ? (
-          <Stack.Screen name="Login">
-            {(props) => <LoginScreen {...props} onLogin={login} />}
-          </Stack.Screen>
-        ) : (
-          <>
-            <Stack.Screen name="Home">
-              {(props) => <HomeScreen {...props} onLogout={logout} userRole={userRole} />}
+    <View style={styles.container}>
+      <NavigationContainer ref={navigationRef}>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          {!isLoggedIn ? (
+            <Stack.Screen name="Login">
+              {(props) => <LoginScreen {...props} onLogin={login} />}
             </Stack.Screen>
-            <Stack.Screen name="RoomDetail" component={RoomDetailScreen} />
-            <Stack.Screen name="FireAlertDetail" component={FireAlertDetailScreen} />
-            <Stack.Screen name="CCTVLive" component={CCTVLiveScreen} />
-            <Stack.Screen name="FireLocation" component={FireLocationScreen} />
-            <Stack.Screen name="FireEventHistory" component={FireEventHistoryScreen} />
-            <Stack.Screen name="FireEventVideo" component={FireEventVideoScreen} />
-          </>
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
+          ) : (
+            <>
+              <Stack.Screen name="Home">
+                {(props) => <HomeScreen {...props} onLogout={logout} userRole={userRole} />}
+              </Stack.Screen>
+              <Stack.Screen name="RoomDetail" component={RoomDetailScreen} />
+              <Stack.Screen name="FireAlertDetail" component={FireAlertDetailScreen} />
+              <Stack.Screen name="CCTVLive" component={CCTVLiveScreen} />
+              <Stack.Screen name="FireLocation" component={FireLocationScreen} />
+              <Stack.Screen name="FireEventHistory" component={FireEventHistoryScreen} />
+              <Stack.Screen name="FireEventVideo" component={FireEventVideoScreen} />
+            </>
+          )}
+        </Stack.Navigator>
+      </NavigationContainer>
+
+      {/* 포그라운드 알림 배너 — NavigationContainer 위에 오버레이 */}
+      <PushNotificationBanner
+        notification={currentNotification}
+        onClose={() => {
+          setCurrentNotification(null);
+          if (bannerTimerRef.current) {
+            clearTimeout(bannerTimerRef.current);
+            bannerTimerRef.current = null;
+          }
+        }}
+        onPress={(notification) => {
+          setCurrentNotification(null);
+          if (bannerTimerRef.current) {
+            clearTimeout(bannerTimerRef.current);
+            bannerTimerRef.current = null;
+          }
+          handleNotificationNavigation(notification);
+        }}
+      />
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});
 
 export default function App() {
   return (
