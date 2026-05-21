@@ -10,42 +10,10 @@ import {
 } from 'react-native';
 import type { StackScreenProps } from '@react-navigation/stack';
 import type { RootStackParamList } from '../types';
-import { DEMO_VIDEO_SOURCES } from '../data/demoData';
 import { FlameParticle, SmokeParticle } from '../components/CCTVParticles';
-
-// expo-video 를 동적 import — 로드 실패 시 정적 목업으로 폴백
-let VideoView: React.ComponentType<any> | null = null;
-let useVideoPlayer: ((source: any, setup?: (player: any) => void) => any) | null = null;
-try {
-  const expoVideo = require('expo-video');
-  VideoView = expoVideo.VideoView;
-  useVideoPlayer = expoVideo.useVideoPlayer;
-} catch (e) {
-  console.log('expo-video 로드 실패, 정적 목업으로 폴백');
-}
-
-const canPlayVideo = VideoView && useVideoPlayer && DEMO_VIDEO_SOURCES.cctvLive;
-
-interface VideoPlayerProps {
-  source: number;
-}
-
-function VideoPlayer({ source }: VideoPlayerProps) {
-  const player = useVideoPlayer!(source, (p: any) => {
-    p.loop = true;
-    p.play();
-  });
-
-  const VideoViewComponent = VideoView!;
-  return (
-    <VideoViewComponent
-      player={player}
-      style={StyleSheet.absoluteFill}
-      contentFit="cover"
-      nativeControls={false}
-    />
-  );
-}
+import { useLiveKitStream } from '../hooks/useLiveKitStream';
+import LiveKitVideoView from '../components/LiveKitVideoView';
+import ConnectionStatusOverlay from '../components/ConnectionStatusOverlay';
 
 // CCTV 시뮬레이션 폴백 컴포넌트
 function CCTVSimulation({
@@ -326,25 +294,26 @@ type Props = StackScreenProps<RootStackParamList, 'CCTVLive'>;
 
 export default function CCTVLiveScreen({ route, navigation }: Props) {
   const { camera, room } = route.params;
-  const [videoError, setVideoError] = useState(false);
 
   const cameraName = camera.cameraEdgeAlias || '카메라';
   const locationText =
     `${camera.locationFloor || room?.floor || ''} ${camera.roomNumber || ''}`.trim();
 
-  // 현재 시각 표시
-  const [now, setNow] = useState(new Date());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+  // LiveKit 실시간 스트리밍 연결
+  const { connectionState, videoTrack, error, retry } = useLiveKitStream(
+    camera.fireEventId ?? null,
+  );
 
-  const formatDate = (d: Date): string =>
-    `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
-  const formatTime = (d: Date): string =>
-    `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
+  // 스트리밍 중이면 초록색, 그 외 빨간색
+  const isStreaming = connectionState === 'streaming';
+  const liveBadgeColor = isStreaming ? '#2ECC40' : '#E31E24';
 
-  const showVideo = canPlayVideo && !videoError;
+  // 시뮬레이션 폴백 조건: fireEventId 없거나, 에러/연결끊김 상태
+  const showSimulation =
+    !camera.fireEventId ||
+    connectionState === 'idle' ||
+    connectionState === 'error' ||
+    connectionState === 'disconnected';
 
   return (
     <SafeAreaView style={styles.container}>
@@ -359,17 +328,28 @@ export default function CCTVLiveScreen({ route, navigation }: Props) {
           <Text style={styles.headerTitle}>CCTV 실시간 영상</Text>
           <Text style={styles.headerSubtitle}>{locationText}</Text>
         </View>
-        <View style={styles.liveBadge}>
+        <View style={[styles.liveBadge, { backgroundColor: liveBadgeColor }]}>
           <View style={styles.liveDot} />
           <Text style={styles.liveText}>LIVE</Text>
         </View>
       </View>
 
-      {/* Video Area */}
+      {/* Video Area — 3단계 폴백 체인 */}
       <View style={styles.videoContainer}>
-        {showVideo ? (
-          <VideoPlayer source={DEMO_VIDEO_SOURCES.cctvLive!} />
-        ) : (
+        {/* 1. LiveKit 스트리밍 성공 → 실시간 영상 */}
+        {isStreaming && videoTrack && <LiveKitVideoView videoTrack={videoTrack} />}
+
+        {/* 2. 연결 중/재연결 중 → 상태 오버레이 */}
+        {camera.fireEventId && !showSimulation && !isStreaming && (
+          <ConnectionStatusOverlay
+            connectionState={connectionState}
+            error={error}
+            onRetry={retry}
+          />
+        )}
+
+        {/* 3. 폴백 → CCTVSimulation (데모 모드) */}
+        {showSimulation && (
           <CCTVSimulation
             cameraName={cameraName}
             locationText={locationText}

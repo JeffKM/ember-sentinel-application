@@ -12,9 +12,7 @@
       "resizeMode": "contain",
       "backgroundColor": "#FF3B30"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.embersentinel.app",
@@ -27,18 +25,12 @@
             ]
           },
           {
-            "CFBundleURLSchemes": [
-              "kakaoad897badbdd2fe79b295c0a88f55b5ab"
-            ]
+            "CFBundleURLSchemes": ["kakaoad897badbdd2fe79b295c0a88f55b5ab"]
           }
         ],
         "CFBundleAllowMixedLocalizations": true,
         "KAKAO_APP_KEY": "***REMOVED_KAKAO_KEY***",
-        "LSApplicationQueriesSchemes": [
-          "kakaokompassauth",
-          "storykompassauth",
-          "kakaolink"
-        ],
+        "LSApplicationQueriesSchemes": ["kakaokompassauth", "storykompassauth", "kakaolink"],
         "NSAppTransportSecurity": {
           "NSExceptionDomains": {
             "exp.direct": {
@@ -68,10 +60,7 @@
               "scheme": "com.embersentinel.app"
             }
           ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
+          "category": ["BROWSABLE", "DEFAULT"]
         }
       ]
     },
@@ -92,9 +81,7 @@
         "expo-build-properties",
         {
           "android": {
-            "extraMavenRepos": [
-              "https://devrepo.kakao.com/nexus/content/groups/public/"
-            ]
+            "extraMavenRepos": ["https://devrepo.kakao.com/nexus/content/groups/public/"]
           }
         }
       ],
@@ -110,7 +97,14 @@
           }
         }
       ],
-      "expo-video"
+      "expo-video",
+      [
+        "@livekit/react-native-expo-plugin",
+        {
+          "android": { "audioType": "media" }
+        }
+      ],
+      "@config-plugins/react-native-webrtc"
     ],
     "notification": {
       "icon": "./assets/icon.png",

@@ -7,33 +7,37 @@ import {
   SafeAreaView,
   StatusBar,
   Animated,
+  ActivityIndicator,
 } from 'react-native';
 import type { StackScreenProps } from '@react-navigation/stack';
 import type { RootStackParamList } from '../types';
-import { DEMO_VIDEO_SOURCES } from '../data/demoData';
 import { FlameParticle, SmokeParticle } from '../components/CCTVParticles';
+import { getFireEventRecordUrl } from '../config/api';
 
 // expo-video 동적 import — 로드 실패 시 정적 목업으로 폴백
-let VideoView: React.ComponentType<any> | null = null;
+let ExpoVideoView: React.ComponentType<any> | null = null;
 let useVideoPlayer: ((source: any, setup?: (player: any) => void) => any) | null = null;
 try {
   const expoVideo = require('expo-video');
-  VideoView = expoVideo.VideoView;
+  ExpoVideoView = expoVideo.VideoView;
   useVideoPlayer = expoVideo.useVideoPlayer;
 } catch (e) {
   console.log('expo-video 로드 실패, 정적 목업으로 폴백');
 }
 
-const canPlayVideo = VideoView && useVideoPlayer && DEMO_VIDEO_SOURCES.fireEvent;
+const canPlayVideo = !!(ExpoVideoView && useVideoPlayer);
 
-interface EventVideoPlayerProps {
-  source: number;
+// S3 Presigned URL 영상 재생 컴포넌트
+function S3VideoPlayer({
+  url,
+  isPlaying,
+  onToggle,
+}: {
+  url: string;
   isPlaying: boolean;
   onToggle: () => void;
-}
-
-function EventVideoPlayer({ source, isPlaying, onToggle }: EventVideoPlayerProps) {
-  const player = useVideoPlayer!(source, (p: any) => {
+}) {
+  const player = useVideoPlayer!(url, (p: any) => {
     p.loop = true;
   });
 
@@ -47,8 +51,8 @@ function EventVideoPlayer({ source, isPlaying, onToggle }: EventVideoPlayerProps
 
   return (
     <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={0.9} onPress={onToggle}>
-      {VideoView && (
-        <VideoView
+      {ExpoVideoView && (
+        <ExpoVideoView
           player={player}
           style={StyleSheet.absoluteFill}
           contentFit="cover"
@@ -336,6 +340,35 @@ export default function FireEventVideoScreen({ route, navigation }: Props) {
   const [elapsed, setElapsed] = useState(0);
   const totalDuration = 135; // 2:15
 
+  // S3 Presigned URL 비동기 로딩
+  const [recordUrl, setRecordUrl] = useState<string | null>(null);
+  const [urlLoading, setUrlLoading] = useState(false);
+  const [urlError, setUrlError] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchRecordUrl = async () => {
+      setUrlLoading(true);
+      setUrlError(false);
+      try {
+        const response = await getFireEventRecordUrl(event.id);
+        if (!cancelled && response?.recordUrl) {
+          setRecordUrl(response.recordUrl);
+        }
+      } catch (err) {
+        console.log('녹화 URL 조회 실패, 시뮬레이션으로 폴백:', err);
+        if (!cancelled) setUrlError(true);
+      } finally {
+        if (!cancelled) setUrlLoading(false);
+      }
+    };
+
+    fetchRecordUrl();
+    return () => {
+      cancelled = true;
+    };
+  }, [event.id]);
+
   const handleTogglePlay = useCallback(() => {
     setIsPlaying((prev) => !prev);
   }, []);
@@ -359,7 +392,8 @@ export default function FireEventVideoScreen({ route, navigation }: Props) {
   };
 
   const cameraName = camera.cameraEdgeAlias || '카메라';
-  const showVideo = canPlayVideo;
+  // S3 URL이 있고 expo-video 사용 가능하면 S3 영상 재생
+  const showS3Video = canPlayVideo && !!recordUrl && !urlError;
   const progressPercent = (elapsed / totalDuration) * 100;
 
   return (
@@ -384,12 +418,13 @@ export default function FireEventVideoScreen({ route, navigation }: Props) {
 
       {/* Video Area */}
       <View style={styles.videoContainer}>
-        {showVideo ? (
-          <EventVideoPlayer
-            source={DEMO_VIDEO_SOURCES.fireEvent!}
-            isPlaying={isPlaying}
-            onToggle={handleTogglePlay}
-          />
+        {urlLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#FF3B30" />
+            <Text style={styles.loadingText}>녹화 영상 로딩 중...</Text>
+          </View>
+        ) : showS3Video ? (
+          <S3VideoPlayer url={recordUrl!} isPlaying={isPlaying} onToggle={handleTogglePlay} />
         ) : (
           <RecordedVideoSimulation
             cameraName={cameraName}
@@ -919,6 +954,16 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    marginTop: 16,
+    fontFamily: 'monospace',
   },
   controls: {
     paddingHorizontal: 20,
