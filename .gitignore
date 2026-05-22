@@ -58,6 +58,17 @@ web-build/
 .env.local
 .env.*.local
 
+# Firebase (민감 정보 — 수동 배치 필요)
+google-services.json
+GoogleService-Info.plist
+
+# Keystore (민감 정보)
+*.jks
+*.keystore
+
+# MCP 로컬 도구
+mcp-shrimp-task-manager/
+
 # Misc
 *.log
 *.swp
