@@ -18,23 +18,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
                     │                    ├── Redis (토큰/캐시)
                     │                    └── FCM 푸시 알림 → [모바일 앱 (ember-sentinel)]
                     │
-                    └── WebRTC → [LiveKit SFU 서버]
+                    └── WebRTC → [LiveKit Cloud (SFU)]
                                     ├── 실시간 스트리밍 → [모바일 앱]
                                     └── Egress 녹화 → [S3]
 
-[Terraform (Terraform-Bastion-Server)] → AWS 인프라 전체 프로비저닝
+[Terraform (Terraform-Bastion-Server)] → AWS 인프라 프로비저닝 (EC2, RDS, S3)
 [ember-sentinel-ai] → YOLOv11 모델 학습/NCNN 변환 파이프라인
 ```
 
 ### 레포지토리 구성
 
-| 레포지토리 | 역할 | 기술 스택 |
-|---|---|---|
-| **ember-sentinel** (현재) | 모바일 앱 (React Native/Expo) | React Native 0.81, Expo 54, React 19, JavaScript |
-| **ember-sentinel-server** | 백엔드 API 서버 | Java 17, Spring Boot 3.5, PostgreSQL, Redis, LiveKit, S3 |
-| **ember-sentinel-ai** | 화재/연기 감지 AI 모델 학습 | Python, YOLOv11n, Ultralytics, NCNN |
-| **edge-IoT** | 엣지 디바이스 (Raspberry Pi) | Python, OpenCV, LiveKit SDK, Bleak (BLE), YOLO NCNN |
-| **Terraform-Bastion-Server** | AWS 인프라 (IaC) | Terraform, AWS (EC2, RDS, S3, ECR, LiveKit) |
+| 레포지토리                   | 역할                          | 기술 스택                                                |
+| ---------------------------- | ----------------------------- | -------------------------------------------------------- |
+| **ember-sentinel** (현재)    | 모바일 앱 (React Native/Expo) | React Native 0.81, Expo 54, React 19, JavaScript         |
+| **ember-sentinel-server**    | 백엔드 API 서버               | Java 17, Spring Boot 3.5, PostgreSQL, Redis, LiveKit, S3 |
+| **ember-sentinel-ai**        | 화재/연기 감지 AI 모델 학습   | Python, YOLOv11n, Ultralytics, NCNN                      |
+| **edge-IoT**                 | 엣지 디바이스 (Raspberry Pi)  | Python, OpenCV, LiveKit SDK, Bleak (BLE), YOLO NCNN      |
+| **Terraform-Bastion-Server** | AWS 인프라 (IaC)              | Terraform, AWS (EC2, RDS, S3, ECR)                       |
 
 ---
 
@@ -43,7 +43,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### 기술 스택
 
 - **React Native** 0.81 + **Expo** 54 (New Architecture 활성화)
-- **React** 19, **JavaScript** (TypeScript 아님)
+- **React** 19, **TypeScript**
 - **React Navigation** 7 (Stack Navigator)
 - **Firebase** 12 (FCM 푸시 알림) + Expo Notifications (폴백)
 - **AsyncStorage** (로컬 상태 저장: 토큰, 사용자 정보, FCM 토큰)
@@ -68,6 +68,7 @@ iOS 첫 빌드 전 `cd ios && pod install` 필요.
 ### 진입점 및 네비게이션
 
 `App.js`가 루트 컴포넌트. 로그인 상태에 따라 조건부로 화면 스택을 렌더링한다:
+
 - 미로그인: `LoginScreen`
 - 로그인 후: `Home → RoomDetail → FireAlertDetail → CCTVLive → FireLocation → FireEventHistory → FireEventVideo`
 
@@ -93,6 +94,7 @@ iOS 첫 빌드 전 `cd ios && pod install` 필요.
 ### 푸시 알림
 
 `src/config/firebase.js`에서 FCM 토큰 발급·등록·리스너 설정을 담당한다.
+
 - 네이티브 빌드: Firebase 네이티브 토큰 사용
 - Expo Go: Expo Push Token으로 폴백
 - 포그라운드: `PushNotificationBanner` 커스텀 배너 표시 (시스템 알림 X)
@@ -136,39 +138,40 @@ iOS 첫 빌드 전 `cd ios && pod install` 필요.
 ### 아키텍처: 레이어드 + CQRS
 
 각 도메인이 Command/Query 분리 패턴을 따른다:
+
 - `XXXCommandController → XXXCommandService → Repository` (생성/수정/삭제)
 - `XXXQueryController → XXXQueryService → Repository` (조회)
 - Java `record`를 활용한 DTO 패턴
 
 ### 도메인 구조
 
-| 도메인 | 설명 |
-|---|---|
-| `user/` | 사용자, OAuth2 인증 (Google/Kakao/Email), JWT 발급 |
-| `building/` | 건물 CRUD |
-| `room/` | 방(공간) CRUD, 멤버십 관리 (VIEWER/EDITOR 권한) |
-| `camera_edge/` | 카메라 엣지 디바이스 등록/삭제 |
-| `fire_event/` | 화재 이벤트 기록, 임베디드 디바이스 → 서버 Publish |
-| `media/` | 스트리밍(LiveKit) 관리, 녹화(S3) 관리 |
-| `common/` | FCM, S3, Redis, LiveKit, JWT, 예외 처리, Swagger 설정 |
-| `security/` | AuthInterceptor (JWT 검증), CORS, @AuthorizedUser 리졸버 |
+| 도메인         | 설명                                                     |
+| -------------- | -------------------------------------------------------- |
+| `user/`        | 사용자, OAuth2 인증 (Google/Kakao/Email), JWT 발급       |
+| `building/`    | 건물 CRUD                                                |
+| `room/`        | 방(공간) CRUD, 멤버십 관리 (VIEWER/EDITOR 권한)          |
+| `camera_edge/` | 카메라 엣지 디바이스 등록/삭제                           |
+| `fire_event/`  | 화재 이벤트 기록, 임베디드 디바이스 → 서버 Publish       |
+| `media/`       | 스트리밍(LiveKit) 관리, 녹화(S3) 관리                    |
+| `common/`      | FCM, S3, Redis, LiveKit, JWT, 예외 처리, Swagger 설정    |
+| `security/`    | AuthInterceptor (JWT 검증), CORS, @AuthorizedUser 리졸버 |
 
 ### 주요 API 엔드포인트
 
-| 경로 | 설명 | 인증 |
-|---|---|---|
-| `POST /auth/google`, `/auth/kakao`, `/auth/email` | 소셜/이메일 로그인 | 불필요 |
-| `POST /auth/token/refresh` | JWT 재발급 | 불필요 |
-| `GET /user/info` | 사용자 정보 | JWT |
-| `POST /user/fcm/token` | FCM 토큰 등록 | JWT |
-| `GET /room/list/me` | 내 방 목록 (페이징) | JWT |
-| `GET /room/{roomId}/detail` | 방 상세 (멤버, 카메라, 화재 상태) | JWT |
-| `POST /room` | 방 생성 | JWT |
-| `POST /room/{roomId}/camera-edge` | 카메라 등록 | JWT |
-| `POST /embedded/fire-event/publish` | 화재 감지 이벤트 발행 (엣지 디바이스용) | 불필요 |
-| `GET /fire-event/{id}/stream/subscribe` | CCTV 라이브 시청 토큰 | JWT |
-| `GET /fire-event/{id}/record` | 녹화 영상 S3 Presigned URL | JWT |
-| `POST /livekit/webhook` | LiveKit 이벤트 수신 (participant join/leave, egress 종료) | LiveKit 서명 |
+| 경로                                              | 설명                                                      | 인증         |
+| ------------------------------------------------- | --------------------------------------------------------- | ------------ |
+| `POST /auth/google`, `/auth/kakao`, `/auth/email` | 소셜/이메일 로그인                                        | 불필요       |
+| `POST /auth/token/refresh`                        | JWT 재발급                                                | 불필요       |
+| `GET /user/info`                                  | 사용자 정보                                               | JWT          |
+| `POST /user/fcm/token`                            | FCM 토큰 등록                                             | JWT          |
+| `GET /room/list/me`                               | 내 방 목록 (페이징)                                       | JWT          |
+| `GET /room/{roomId}/detail`                       | 방 상세 (멤버, 카메라, 화재 상태)                         | JWT          |
+| `POST /room`                                      | 방 생성                                                   | JWT          |
+| `POST /room/{roomId}/camera-edge`                 | 카메라 등록                                               | JWT          |
+| `POST /embedded/fire-event/publish`               | 화재 감지 이벤트 발행 (엣지 디바이스용)                   | 불필요       |
+| `GET /fire-event/{id}/stream/subscribe`           | CCTV 라이브 시청 토큰                                     | JWT          |
+| `GET /fire-event/{id}/record`                     | 녹화 영상 S3 Presigned URL                                | JWT          |
+| `POST /livekit/webhook`                           | LiveKit 이벤트 수신 (participant join/leave, egress 종료) | LiveKit 서명 |
 
 ### 화재 이벤트 플로우
 
@@ -231,13 +234,13 @@ Building 1 ─── * Room 1 ─── * CameraEdge 1 ─── * FireEvent
 
 ### ML 파이프라인
 
-| 단계 | 스크립트 | 설명 |
-|---|---|---|
+| 단계      | 스크립트           | 설명                                                                     |
+| --------- | ------------------ | ------------------------------------------------------------------------ |
 | 1. 전처리 | `preprocessing.py` | FASDD_CV 데이터셋을 Ultralytics 표준 구조로 변환, `fasdd_data.yaml` 생성 |
-| 2. EDA | `eda.py` | 클래스 분포, 바운딩 박스 면적/종횡비 분석 → `eda_results/` |
-| 3. 학습 | `train.py` | YOLOv11n 파인튜닝 (epochs=30, imgsz=640, batch=32, AMP, early stopping) |
-| 4. 변환 | `export.py` | PyTorch → NCNN 포맷 (FP16 Half Precision) |
-| 5. 평가 | `inference.py` | NCNN 모델로 테스트셋 mAP/precision/recall 측정 |
+| 2. EDA    | `eda.py`           | 클래스 분포, 바운딩 박스 면적/종횡비 분석 → `eda_results/`               |
+| 3. 학습   | `train.py`         | YOLOv11n 파인튜닝 (epochs=30, imgsz=640, batch=32, AMP, early stopping)  |
+| 4. 변환   | `export.py`        | PyTorch → NCNN 포맷 (FP16 Half Precision)                                |
+| 5. 평가   | `inference.py`     | NCNN 모델로 테스트셋 mAP/precision/recall 측정                           |
 
 ### 실행 명령어
 
@@ -269,11 +272,11 @@ python inference.py       # 평가
 
 ### 구성 파일 (3개)
 
-| 파일 | 역할 |
-|---|---|
-| `main.py` | 핵심 시스템: 카메라 캡처 → YOLO 추론 → BLE 경보 → LiveKit 스트리밍 → 서버 이벤트 발행 |
-| `client.py` | 테스트용 LiveKit 스트리밍 클라이언트 (YOLO/BLE 없이 순수 스트리밍) |
-| `arduino.ino` | Arduino 펌웨어: BLE로 명령 수신 → 부저 10초간 ON/OFF (0.5초 간격) |
+| 파일          | 역할                                                                                  |
+| ------------- | ------------------------------------------------------------------------------------- |
+| `main.py`     | 핵심 시스템: 카메라 캡처 → YOLO 추론 → BLE 경보 → LiveKit 스트리밍 → 서버 이벤트 발행 |
+| `client.py`   | 테스트용 LiveKit 스트리밍 클라이언트 (YOLO/BLE 없이 순수 스트리밍)                    |
+| `arduino.ino` | Arduino 펌웨어: BLE로 명령 수신 → 부저 10초간 ON/OFF (0.5초 간격)                     |
 
 ### 동작 로직 (main.py)
 
@@ -286,8 +289,8 @@ python inference.py       # 평가
 
 ### 설정 (코드 하드코딩)
 
-- LiveKit 서버: `ws://54.187.131.131:7880`
-- API 서버: `http://ec2-35-94-89-39.us-west-2.compute.amazonaws.com:8080`
+- LiveKit 서버: Terraform 코드에는 `ws://54.187.131.131:7880`이 남아있으나, 실제 운영은 **LiveKit Cloud** (`wss://***REMOVED_LIVEKIT_URL***`) 사용
+- API 서버: `http://***REMOVED_IP***:8080` (ap-southeast-2)
 - YOLO 모델: `./experiments/yolov11n/weights/best_ncnn_model`
 - Arduino BLE MAC: `90:9F:4D:1A:35:A1`
 
@@ -296,23 +299,31 @@ python inference.py       # 평가
 ## AWS 인프라 (Terraform-Bastion-Server)
 
 - **GitHub**: `JeffKM/Terraform-Bastion-Server` (기본 브랜치: `main`)
+- **로컬 경로**: `~/Projects/Terraform-Bastion-Server`
 
 ### 기술 스택
 
 - **Terraform** (HCL), AWS Provider ~> 5.0
-- AWS 리전: `us-west-2` (오레곤)
+- AWS 리전: `ap-southeast-2` (시드니)
 - Bastion EC2 내에서 Terraform 실행 (IAM Role 자동 상속)
 
-### 프로비저닝되는 AWS 리소스
+### 실제 운영 중인 AWS 리소스 (2026.05 기준)
 
-| 리소스 | 사양 | 용도 |
-|---|---|---|
-| **EC2 (API Server)** | t3.medium | Spring Boot + Redis 7.0 (Docker) |
-| **EC2 (LiveKit)** | m5.xlarge | LiveKit SFU + Redis + Egress (Docker Compose) |
-| **RDS** | db.t4g.micro, PostgreSQL 15.12 | ember_sentinel DB (20GB) |
-| **S3** | inha-capstone-04-s3-bucket-{random} | 녹화 영상 저장 (퍼블릭 접근 차단) |
-| **ECR** | api-server, livekit-server | Docker 이미지 레지스트리 |
-| **보안 그룹** | API SG, LiveKit SG, RDS SG | SSH(Bastion만), HTTP, WebRTC, PostgreSQL 포트 관리 |
+| 리소스                         | 사양                                | 용도                                 | 비용              |
+| ------------------------------ | ----------------------------------- | ------------------------------------ | ----------------- |
+| **EC2** (`ember-sentinel-api`) | t3.micro                            | Spring Boot API 서버 (단일 인스턴스) | 프리 티어 (무료)  |
+| **RDS**                        | db.t4g.micro, PostgreSQL            | ember_sentinel DB                    | RDS 크레딧 적용   |
+| **S3**                         | inha-capstone-04-s3-bucket-{random} | 녹화 영상 저장                       | 프리 티어 범위 내 |
+
+> **참고**: Terraform 코드에는 EC2 2대(API t3.medium + LiveKit m5.xlarge) 구성이 정의되어 있으나,
+> 실제로는 t3.micro 단일 인스턴스(`ember-sentinel-api`, IP: ***REMOVED_IP***)만 운영 중이다.
+> LiveKit은 별도 EC2 없이 동일 인스턴스 또는 외부 서비스로 처리하는 것으로 보인다.
+
+### AWS 비용 현황
+
+- **AWS 프리 티어** 크레딧: $100 (만료: 2027.05.21)
+- **RDS 크레딧**: $20 (만료: 2027.05.21)
+- **현재 실 청구액**: $0 (크레딧으로 충당)
 
 ### 디렉토리 구조
 
@@ -356,10 +367,10 @@ terraform destroy -var-file="secrets.tfvars"   # 인프라 전체 파괴
     → FCM 푸시 알림 → [ember-sentinel 모바일 앱]
 
 2. [edge-IoT] LiveKit WebRTC 스트리밍
-    → [LiveKit SFU 서버] (Terraform으로 프로비저닝)
+    → [LiveKit Cloud] (wss://***REMOVED_LIVEKIT_URL***)
     → [ember-sentinel 모바일 앱] GET /fire-event/{id}/stream/subscribe로 시청 토큰 발급
 
-3. [LiveKit Egress] 녹화 종료
+3. [LiveKit Cloud Egress] 녹화 종료
     → S3에 영상 저장
     → POST /livekit/webhook → [ember-sentinel-server] MediaRecord 업데이트
     → [ember-sentinel 모바일 앱] GET /fire-event/{id}/record로 Presigned URL 수령
