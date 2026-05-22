@@ -14,7 +14,33 @@ import type { RootStackParamList } from '../types';
 type Props = StackScreenProps<RootStackParamList, 'FireAlertDetail'>;
 
 export default function FireAlertDetailScreen({ route, navigation }: Props) {
-  const { camera, room } = route.params;
+  const { camera, room, event } = route.params;
+
+  // 감지 시간: event 데이터가 있으면 사용, 없으면 현재 시간
+  const detectionTime = event?.date
+    ? event.date.includes(' ')
+      ? event.date.split(' ')[1] // "2026-05-21 14:32:15" → "14:32:15"
+      : new Date(event.date).toLocaleTimeString('ko-KR', { hour12: false })
+    : new Date().toLocaleTimeString('ko-KR', { hour12: false });
+
+  // 경과 시간 계산
+  const getElapsedTime = () => {
+    if (!event?.date) return '방금 전';
+    const eventDate = event.date.includes(' ')
+      ? new Date(event.date.replace(' ', 'T'))
+      : new Date(event.date);
+    const diffMs = Date.now() - eventDate.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 1) return '방금 전';
+    if (diffMin < 60) return `${diffMin}분 전`;
+    return `${Math.floor(diffMin / 60)}시간 전`;
+  };
+
+  // 상황 설명 동적 생성
+  const locationName = room.roomAlias || `${room.roomNumber || ''}호`;
+  const detectionType = event?.detectionType || '화재';
+  const riskLevel = event?.riskLevel || '높음';
+  const description = `${locationName}에서 ${detectionType}이(가) 감지되었습니다. 위험 등급: ${riskLevel}. 즉시 대피하시고, 아래 버튼을 통해 현장 영상을 확인하거나 화재 위치를 확인하세요.`;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -30,7 +56,7 @@ export default function FireAlertDetailScreen({ route, navigation }: Props) {
             <Text style={styles.warningIcon}>⚠️</Text>
             <Text style={styles.headerTitle}>화재 알림</Text>
           </View>
-          <Text style={styles.headerSubtitle}>2분 전</Text>
+          <Text style={styles.headerSubtitle}>{getElapsedTime()}</Text>
         </View>
         <View style={{ width: 40 }} />
       </View>
@@ -65,17 +91,14 @@ export default function FireAlertDetailScreen({ route, navigation }: Props) {
 
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>감지 시간</Text>
-            <Text style={styles.infoValue}>14:32:15</Text>
+            <Text style={styles.infoValue}>{detectionTime}</Text>
           </View>
         </View>
 
         {/* Situation Description */}
         <View style={styles.descriptionCard}>
           <Text style={styles.descriptionTitle}>상황 설명</Text>
-          <Text style={styles.descriptionText}>
-            305호 중앙에서 작은 불이 감지되었습니다. 화재가 확실한 수 있으니 즉시 대피하시고, 아래
-            버튼을 통해 현장 영상을 확인하거나 화재 위치를 확인하세요.
-          </Text>
+          <Text style={styles.descriptionText}>{description}</Text>
         </View>
       </ScrollView>
 

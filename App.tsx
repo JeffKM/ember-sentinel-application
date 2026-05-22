@@ -58,17 +58,28 @@ function extractNavParamsFromNotification(notification: Notification) {
           cameraCountPerRoom: 1,
           fireEventCountPerRoom: 1,
         },
+        event: {
+          id: Number(data.fireEventId) || 0,
+          date: (data.detectedAt as string) || new Date().toISOString(),
+          cameraId: Number(data.cameraId) || 0,
+          detectionType: (data.detectionType as string) || '화재 감지',
+          riskLevel: (data.riskLevel as string) || '높음',
+        },
       },
     };
   }
 
   // 로컬 시뮬레이션 알림: camera, room 객체가 data에 직접 포함
   if (data.camera && data.room) {
+    const simData = data.simData as
+      | { event?: RootStackParamList['FireAlertDetail']['event'] }
+      | undefined;
     return {
       screen: 'FireAlertDetail' as const,
       params: {
         camera: data.camera as RootStackParamList['FireAlertDetail']['camera'],
         room: data.room as RootStackParamList['FireAlertDetail']['room'],
+        event: simData?.event,
       },
     };
   }

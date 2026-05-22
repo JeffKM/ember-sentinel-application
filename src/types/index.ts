@@ -100,7 +100,7 @@ export type RootStackParamList = {
   Login: undefined;
   Home: undefined;
   RoomDetail: { room: Room };
-  FireAlertDetail: { camera: Camera; room: RoomDetail | Room };
+  FireAlertDetail: { camera: Camera; room: RoomDetail | Room; event?: FireEvent };
   CCTVLive: { camera: Camera; room: RoomDetail | Room };
   FireLocation: { camera: Camera; room: RoomDetail | Room };
   FireEventHistory: { camera: Camera; room: RoomDetail | Room };

@@ -461,6 +461,7 @@ export default function HomeScreen({ navigation, onLogout, userRole }: HomeScree
                     navigation.navigate('FireAlertDetail', {
                       camera: simData.camera,
                       room: simData.room,
+                      event: simData.event,
                     });
                   }, 3000);
                 }}
