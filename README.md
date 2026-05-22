@@ -9,6 +9,7 @@
 [![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.5-6DB33F?logo=springboot)](https://spring.io/projects/spring-boot)
 [![YOLOv11](https://img.shields.io/badge/YOLOv11n-NCNN-FF6F00)](https://docs.ultralytics.com/)
 [![Terraform](https://img.shields.io/badge/Terraform-IaC-7B42BC?logo=terraform)](https://www.terraform.io/)
+[![Download APK](https://img.shields.io/badge/Download-APK-green?logo=android)](https://github.com/JeffKM/ember-sentinel/releases/latest)
 
 인하대학교 캡스톤 디자인 프로젝트 — USB 카메라와 Raspberry Pi에서 YOLOv11 모델로 화재/연기를 감지하고, WebRTC 실시간 스트리밍과 FCM 푸시 알림으로 즉시 대응할 수 있는 IoT 시스템입니다.
 
@@ -19,8 +20,9 @@
 - [시스템 아키텍처](#시스템-아키텍처)
 - [레포지토리 구성](#레포지토리-구성)
 - [기술 스택](#기술-스택)
+- [다운로드](#다운로드)
 - [데모 영상](#데모-영상)
-- [스크린샷](#스크린샷)
+- [구동 모습](#구동-모습)
 - [시작하기](#시작하기)
 - [모바일 앱 상세](#모바일-앱-상세)
 - [아키텍처 문서](#아키텍처-문서)
@@ -186,6 +188,16 @@ graph LR
 
 ---
 
+## 다운로드
+
+| 플랫폼  | 다운로드                                                                          | 비고              |
+| ------- | --------------------------------------------------------------------------------- | ----------------- |
+| Android | [**최신 APK 다운로드**](https://github.com/JeffKM/ember-sentinel/releases/latest) | Android 8.0+ 지원 |
+
+> 설치 시 "출처를 알 수 없는 앱" 허용이 필요합니다.
+
+---
+
 ## 데모 영상
 
 ### E2E 플로우 (실기기 Android APK)
@@ -230,32 +242,15 @@ graph LR
 
 ---
 
-## 스크린샷
+## 구동 모습
 
-<table>
-  <tr>
-    <td align="center">
-      <img src="docs/screenshots/푸쉬알림화면.png" width="200" />
-      <br /><b>푸시 알림</b>
-      <br /><sub>화재 감지 시 실시간 푸시 알림</sub>
-    </td>
-    <td align="center">
-      <img src="docs/screenshots/홈%20화면.png" width="200" />
-      <br /><b>홈 화면</b>
-      <br /><sub>방 목록 및 화재 상태 대시보드</sub>
-    </td>
-    <td align="center">
-      <img src="docs/screenshots/실시간cctv.png" width="200" />
-      <br /><b>CCTV 실시간 영상</b>
-      <br /><sub>WebRTC 기반 실시간 스트리밍</sub>
-    </td>
-    <td align="center">
-      <img src="docs/screenshots/건물평면도.png" width="200" />
-      <br /><b>건물 평면도</b>
-      <br /><sub>층별 화재 발생 위치 확인</sub>
-    </td>
-  </tr>
-</table>
+<!-- TODO: YouTube 영상 업로드 후 VIDEO_ID를 실제 값으로 교체 -->
+
+[![Ember Sentinel 데모](https://img.youtube.com/vi/VIDEO_ID/maxresdefault.jpg)](https://www.youtube.com/watch?v=VIDEO_ID)
+
+> 영상을 클릭하면 YouTube에서 전체 앱 사용 플로우를 확인할 수 있습니다.
+>
+> **포함 내용**: 소셜 로그인 → 홈 대시보드 → 화재 감지 푸시 알림 → CCTV 실시간 스트리밍 → 녹화 영상 재생 → 건물 평면도
 
 ---
 
@@ -459,9 +454,10 @@ ember-sentinel/
 │   │   ├── firebase.ts           # FCM 토큰 발급 및 리스너
 │   │   └── socialLogin.ts        # Google/Kakao 소셜 로그인
 │   ├── components/               # 재사용 UI 컴포넌트
-│   ├── context/                  # AuthContext (인증 상태 관리)
+│   ├── contexts/                 # AuthContext (인증 상태 관리)
+│   ├── hooks/                    # 커스텀 훅 (useLiveKitStream 등)
 │   ├── data/                     # 데모 데이터 세트
-│   ├── types/                    # TypeScript 도메인 타입 (16개)
+│   ├── types/                    # TypeScript 도메인 타입
 │   └── utils/                    # 유틸리티 (네트워크, 푸시 알림)
 ├── docs/
 │   ├── adr/                      # Architecture Decision Records (8개)

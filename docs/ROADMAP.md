@@ -1,7 +1,7 @@
 # Ember Sentinel — 개발 로드맵
 
 > **기준 문서**: [PRD.md](./PRD.md) v1.0
-> **최종 갱신일**: 2026-05-22 <!-- v2.7 FireAlertDetailScreen 하드코딩 제거 -->
+> **최종 갱신일**: 2026-05-22 <!-- v2.8 README APK 다운로드 + YouTube 데모 영상 섹션 -->
 > **목표**: 면접 시연 및 포트폴리오 활용을 위한 전체 시스템 개선 실행 계획
 
 ---
@@ -566,3 +566,4 @@ T-068 ── T-069 (GIF → README 업데이트)
 | 2026-05-22 | v2.5 | Phase 14 추가 (T-051~T-054) — LiveKit CCTV 실시간 스트리밍: LiveKit 5개 패키지 설치 + app.json plugins + registerGlobals(), useLiveKitStream 훅(7단계 상태 머신 + 자동 재시도 3회) + LiveKitVideoView + ConnectionStatusOverlay, CCTVLiveScreen 3단계 폴백 체인(LiveKit→오버레이→시뮬레이션) + LIVE 배지 동적 색상, FireEventVideoScreen S3 Presigned URL 비동기 로딩 + S3VideoPlayer(expo-video URL 재생) + 시뮬레이션 폴백. **54/54 태스크 완료**                  |
 | 2026-05-22 | v2.6 | Phase 15 추가 (T-055~T-070) — 프로덕션 데모 환경 구축: eas.json preview APK 빌드 + 환경변수 설정(T-059), EAS Build 실기기 배포 가이드(docs/eas-build-guide.md), 데모 GIF 캡처 워크플로우(docs/demos/ scrcpy+ffmpeg 가이드), README 데모 섹션 E2E 기준 업데이트                                                                                                                                                                                                       |
 | 2026-05-22 | v2.7 | FireAlertDetailScreen 하드코딩 제거 — 상황 설명("305호 중앙에서…"), 감지 시간("14:32:15"), 경과 시간("2분 전")이 모두 하드코딩되어 실제 카메라/구역 데이터와 불일치하던 문제 수정. `FireAlertDetail` 라우트에 `event?: FireEvent` 추가, 상황 설명·감지 시간·경과 시간을 room/camera/event 데이터로 동적 생성. HomeScreen 시뮬레이션 및 App.tsx 알림 핸들러에서 event 데이터 전달 추가 (4개 파일: types/index.ts, FireAlertDetailScreen.tsx, HomeScreen.tsx, App.tsx) |
+| 2026-05-22 | v2.8 | README APK 다운로드 + 구동 모습 섹션 — Download APK 뱃지 추가(GitHub Releases latest), 다운로드 섹션 신규(APK 테이블 + 설치 안내), 스크린샷 섹션을 YouTube 데모 영상 구동 모습 섹션으로 교체(VIDEO_ID 플레이스홀더, 영상 업로드 후 교체 필요)                                                                                                                                                                                                                        |
