@@ -403,6 +403,7 @@ export const googleLogin = async (accessToken: string): Promise<AuthResponse> =>
     body: JSON.stringify({ accessToken }),
     skipAuth: true,
   });
+  console.log('🔑 [AUTH] Google 로그인 성공 — accessToken:', response!.accessToken);
   return response!;
 };
 
@@ -412,6 +413,7 @@ export const kakaoLogin = async (accessToken: string): Promise<AuthResponse> => 
     body: JSON.stringify({ accessToken }),
     skipAuth: true,
   });
+  console.log('🔑 [AUTH] Kakao 로그인 성공 — accessToken:', response!.accessToken);
   return response!;
 };
 
