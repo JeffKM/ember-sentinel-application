@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,12 +8,171 @@ import {
   StatusBar,
   Animated,
 } from 'react-native';
+import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import type { StackScreenProps } from '@react-navigation/stack';
 import type { RootStackParamList } from '../types';
 import { FlameParticle, SmokeParticle } from '../components/CCTVParticles';
 import { useLiveKitStream } from '../hooks/useLiveKitStream';
 import LiveKitVideoView from '../components/LiveKitVideoView';
 import ConnectionStatusOverlay from '../components/ConnectionStatusOverlay';
+import { isDemoRoomId } from '../data/demoData';
+
+// 번들된 샘플 화재 영상 + YOLO 탐지 데이터
+const SAMPLE_FIRE_VIDEO = require('../../assets/videos/fire-sample.mp4');
+const SAMPLE_DETECTIONS = require('../../assets/videos/fire-sample-detections.json');
+
+type DetectionBox = {
+  class: string;
+  confidence: number;
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+};
+type DetectionFrame = { time: number; boxes: DetectionBox[] };
+
+// 현재 시간에 가장 가까운 탐지 프레임 반환
+function getDetectionsAtTime(time: number): DetectionBox[] {
+  const frames: DetectionFrame[] = SAMPLE_DETECTIONS.detections;
+  if (!frames.length) return [];
+  let closest = frames[0];
+  for (const f of frames) {
+    if (Math.abs(f.time - time) < Math.abs(closest.time - time)) {
+      closest = f;
+    }
+  }
+  return closest.boxes;
+}
+
+// 데모 영상 폴백 컴포넌트 (fire-sample.mp4 + YOLO 오버레이)
+function DemoVideoFallback({
+  cameraName,
+  locationText,
+  deviceUuid,
+}: {
+  cameraName: string;
+  locationText: string;
+  deviceUuid: string;
+}) {
+  const videoRef = useRef<Video>(null);
+  const [elapsed, setElapsed] = useState(0);
+  const blinkAnim = useRef(new Animated.Value(1)).current;
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // REC 점멸
+  useEffect(() => {
+    const blink = Animated.loop(
+      Animated.sequence([
+        Animated.timing(blinkAnim, { toValue: 0, duration: 500, useNativeDriver: true }),
+        Animated.timing(blinkAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
+      ]),
+    );
+    blink.start();
+    return () => blink.stop();
+  }, [blinkAnim]);
+
+  const formatTime = (d: Date): string =>
+    `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
+
+  return (
+    <View style={StyleSheet.absoluteFill}>
+      {/* 영상 재생 */}
+      <Video
+        ref={videoRef}
+        source={SAMPLE_FIRE_VIDEO}
+        style={StyleSheet.absoluteFill}
+        resizeMode={ResizeMode.COVER}
+        isLooping
+        shouldPlay
+        onPlaybackStatusUpdate={(status: AVPlaybackStatus) => {
+          if (status.isLoaded) {
+            setElapsed(status.positionMillis / 1000);
+          }
+        }}
+      />
+
+      {/* YOLO 탐지 박스 오버레이 */}
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        {getDetectionsAtTime(elapsed).map((box, i) => {
+          const color = box.class === 'fire' ? '#FF3B30' : '#FFD60A';
+          return (
+            <View
+              key={`${box.class}-${i}`}
+              style={{
+                position: 'absolute',
+                left: `${box.x1 * 100}%`,
+                top: `${box.y1 * 100}%`,
+                width: `${(box.x2 - box.x1) * 100}%`,
+                height: `${(box.y2 - box.y1) * 100}%`,
+                borderWidth: 2,
+                borderColor: color,
+                borderRadius: 2,
+              }}
+            >
+              <View
+                style={{
+                  position: 'absolute',
+                  top: -20,
+                  left: -2,
+                  backgroundColor: color,
+                  paddingHorizontal: 6,
+                  paddingVertical: 2,
+                  borderRadius: 2,
+                }}
+              >
+                <Text
+                  style={{
+                    color: '#FFF',
+                    fontSize: 10,
+                    fontWeight: 'bold',
+                    fontFamily: 'monospace',
+                  }}
+                >
+                  {box.class} {box.confidence.toFixed(2)}
+                </Text>
+              </View>
+            </View>
+          );
+        })}
+
+        {/* HUD: 상단 좌측 REC + 시간 */}
+        <View style={demo.topLeft}>
+          <View style={demo.recBadge}>
+            <Animated.View style={[demo.recDot, { opacity: blinkAnim }]} />
+            <Text style={demo.recText}>REC</Text>
+          </View>
+          <Text style={demo.timestamp}>{formatTime(now)}</Text>
+        </View>
+
+        {/* HUD: 상단 우측 카메라 정보 */}
+        <View style={demo.topRight}>
+          <Text style={demo.camId}>{deviceUuid}</Text>
+          <Text style={demo.camLocation}>{locationText}</Text>
+        </View>
+
+        {/* HUD: 하단 좌측 카메라명 */}
+        <View style={demo.bottomLeft}>
+          <Text style={demo.camName}>{cameraName}</Text>
+        </View>
+
+        {/* HUD: 하단 우측 감지 배지 */}
+        {getDetectionsAtTime(elapsed).some((b) => b.class === 'fire') && (
+          <View style={demo.bottomRight}>
+            <View style={demo.detectBadge}>
+              <Animated.View style={[demo.detectDot, { opacity: blinkAnim }]} />
+              <Text style={demo.detectText}>FIRE DETECTED</Text>
+            </View>
+          </View>
+        )}
+      </View>
+    </View>
+  );
+}
 
 // CCTV 시뮬레이션 폴백 컴포넌트
 function CCTVSimulation({
@@ -299,6 +458,9 @@ export default function CCTVLiveScreen({ route, navigation }: Props) {
   const locationText =
     `${camera.locationFloor || room?.floor || ''} ${camera.roomNumber || ''}`.trim();
 
+  // 데모 방 여부
+  const isDemo = isDemoRoomId(room?.roomId);
+
   // LiveKit 실시간 스트리밍 연결
   const { connectionState, videoTrack, error, retry } = useLiveKitStream(
     camera.fireEventId ?? null,
@@ -348,8 +510,15 @@ export default function CCTVLiveScreen({ route, navigation }: Props) {
           />
         )}
 
-        {/* 3. 폴백 → CCTVSimulation (데모 모드) */}
-        {showSimulation && (
+        {/* 3. 폴백 → 데모 방이면 실제 화재 영상, 아니면 CCTVSimulation */}
+        {showSimulation && isDemo && (
+          <DemoVideoFallback
+            cameraName={cameraName}
+            locationText={locationText}
+            deviceUuid={camera.deviceUuid || 'CAM-DEMO'}
+          />
+        )}
+        {showSimulation && !isDemo && (
           <CCTVSimulation
             cameraName={cameraName}
             locationText={locationText}
@@ -373,6 +542,93 @@ export default function CCTVLiveScreen({ route, navigation }: Props) {
     </SafeAreaView>
   );
 }
+
+// 데모 영상 HUD 스타일
+const demo = StyleSheet.create({
+  topLeft: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+  },
+  recBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  recDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FF3B30',
+  },
+  recText: {
+    color: '#FF3B30',
+    fontSize: 13,
+    fontWeight: 'bold',
+    fontFamily: 'monospace',
+  },
+  timestamp: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 12,
+    fontFamily: 'monospace',
+  },
+  topRight: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    alignItems: 'flex-end',
+  },
+  camId: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 11,
+    fontFamily: 'monospace',
+    marginBottom: 4,
+  },
+  camLocation: {
+    color: 'rgba(255, 255, 255, 0.5)',
+    fontSize: 11,
+    fontFamily: 'monospace',
+  },
+  bottomLeft: {
+    position: 'absolute',
+    bottom: 16,
+    left: 16,
+  },
+  camName: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 12,
+    fontFamily: 'monospace',
+  },
+  bottomRight: {
+    position: 'absolute',
+    bottom: 16,
+    right: 16,
+  },
+  detectBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 59, 48, 0.3)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 59, 48, 0.6)',
+    gap: 6,
+  },
+  detectDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#FF3B30',
+  },
+  detectText: {
+    color: '#FF6B6B',
+    fontSize: 11,
+    fontWeight: 'bold',
+    fontFamily: 'monospace',
+  },
+});
 
 // CCTV 시뮬레이션 스타일
 const sim = StyleSheet.create({

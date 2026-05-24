@@ -1,7 +1,7 @@
 # Ember Sentinel — 개발 로드맵
 
 > **기준 문서**: [PRD.md](./PRD.md) v1.0
-> **최종 갱신일**: 2026-05-24 <!-- v3.1 데모 데이터 인하대 테마 + expo-av 영상 재생 -->
+> **최종 갱신일**: 2026-05-24 <!-- v3.2 CCTVLiveScreen 데모 영상 폴백 -->
 > **목표**: 면접 시연 및 포트폴리오 활용을 위한 전체 시스템 개선 실행 계획
 
 ---
@@ -58,12 +58,12 @@
 
 **선행 조건**: 없음 (Phase 1과 병렬 진행 가능)
 
-|  ID   | 태스크                   | 상태 | 비고                                                                                                                                      |
-| :---: | ------------------------ | :--: | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| T-007 | 데모 데이터 세트 확충    |  ✅  | `src/data/demoData.ts` — 인하대 캠퍼스 건물 5개, 방 7개, 카메라 14대, 멤버 28명, 화재 이벤트 12건. 서버 데이터 부족 시 자동 추가 프롬프트 |
-| T-008 | API base URL 환경 변수화 |  ✅  | `EXPO_PUBLIC_API_BASE_URL` 환경 변수, `.env.example` 추가                                                                                 |
-| T-009 | CCTV 화면 데모 영상      |  ✅  | `expo-av` Video 컴포넌트로 전환 (expo-video 시뮬레이터 미지원 해결), MP4 폴백, YOLO 오버레이                                              |
-| T-010 | 화재 이벤트 수동 트리거  |  ✅  | HomeScreen 시뮬레이션 버튼 + DEV 헬퍼 `simulateFire()`                                                                                    |
+|  ID   | 태스크                   | 상태 | 비고                                                                                                                                                 |
+| :---: | ------------------------ | :--: | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T-007 | 데모 데이터 세트 확충    |  ✅  | `src/data/demoData.ts` — 인하대 캠퍼스 건물 5개, 방 7개, 카메라 14대, 멤버 28명, 화재 이벤트 12건. 서버 데이터 부족 시 자동 추가 프롬프트            |
+| T-008 | API base URL 환경 변수화 |  ✅  | `EXPO_PUBLIC_API_BASE_URL` 환경 변수, `.env.example` 추가                                                                                            |
+| T-009 | CCTV 화면 데모 영상      |  ✅  | `expo-av` Video 컴포넌트로 전환 (expo-video 시뮬레이터 미지원 해결), FireEventVideoScreen + CCTVLiveScreen 모두 fire-sample.mp4 + YOLO 오버레이 적용 |
+| T-010 | 화재 이벤트 수동 트리거  |  ✅  | HomeScreen 시뮬레이션 버튼 + DEV 헬퍼 `simulateFire()`                                                                                               |
 
 **완료 기준**: 서버 없이 9개 화면 모두 탐색 가능 (PRD 섹션 11)
 
@@ -306,7 +306,7 @@
 | :---: | ------------------------------------------ | :--: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | T-051 | LiveKit 패키지 설치 및 기반 설정           |  ✅  | `livekit-client`, `@livekit/react-native`, `@livekit/react-native-webrtc`, `@livekit/react-native-expo-plugin`, `@config-plugins/react-native-webrtc@13` 설치. `app.json` plugins 추가, `App.tsx`에 `registerGlobals()` 추가 |
 | T-052 | useLiveKitStream 훅 + 컴포넌트 생성        |  ✅  | `useLiveKitStream.ts` — 7단계 상태 머신(idle→fetching_token→connecting→connected→streaming→reconnecting→error), 자동 재시도 3회, `LiveKitVideoView.tsx`, `ConnectionStatusOverlay.tsx` 신규 생성                             |
-| T-053 | CCTVLiveScreen 실시간 스트리밍 통합        |  ✅  | 3단계 폴백 체인: `fireEventId` 존재 → LiveKit 스트리밍 / 연결 중 → ConnectionStatusOverlay / 실패 → CCTVSimulation. LIVE 배지 색상 동적 변경(streaming: 초록, 그 외: 빨강). `expo-video` 데모 비디오 로직 제거               |
+| T-053 | CCTVLiveScreen 실시간 스트리밍 통합        |  ✅  | 3단계 폴백 체인: LiveKit 스트리밍 → ConnectionStatusOverlay → 데모 방이면 DemoVideoFallback(fire-sample.mp4+YOLO 오버레이), 비데모면 CCTVSimulation. LIVE 배지 동적 색상(streaming: 초록, 그 외: 빨강)                       |
 | T-054 | FireEventVideoScreen S3 Presigned URL 재생 |  ✅  | `getFireEventRecordUrl(fireEventId, roomId)` 비동기 로딩 → 3단계 폴백: S3 URL → 번들 샘플 영상(fire-sample.mp4 + YOLO 실시간 탐지 오버레이) → RecordedVideoSimulation. 동적 프로그레스 바(S3: 2:15 / 샘플: 0:06)             |
 
 **완료 기준**: 실기기에서 LiveKit 퍼블리셔 연결 시 실시간 영상 수신, S3 녹화 URL로 재생, 서버 미연결 시 기존 시뮬레이션 정상 동작
@@ -316,7 +316,7 @@
 - `src/hooks/useLiveKitStream.ts`: LiveKit Room 연결 생명주기 전체 관리 (토큰 발급 → AudioSession → Room 생성 → 이벤트 리스너 → 연결 → 트랙 구독). LiveKit Cloud URL `wss://***REMOVED_LIVEKIT_URL***` 폴백
 - `src/components/LiveKitVideoView.tsx`: `@livekit/react-native`의 `VideoView` 래퍼 (deprecated API이나 `@livekit/components-react` 의존 없이 동작)
 - `src/components/ConnectionStatusOverlay.tsx`: 상태별 UI (로딩 인디케이터 + 메시지 / 에러 + "다시 시도" 버튼)
-- `src/screens/CCTVLiveScreen.tsx`: expo-video 데모 로직 제거, LiveKit 3단계 폴백 체인으로 교체
+- `src/screens/CCTVLiveScreen.tsx`: LiveKit 3단계 폴백 체인 + 데모 방 판별(isDemoRoomId) → DemoVideoFallback(fire-sample.mp4 + YOLO 탐지 오버레이 + HUD) / CCTVSimulation 분기
 - `src/screens/FireEventVideoScreen.tsx`: S3 URL 비동기 페칭 + S3VideoPlayer 내부 컴포넌트 추가
 
 **네이티브 빌드 필요**: LiveKit WebRTC는 Expo Go에서 동작하지 않으므로 `eas build --profile development --platform all` 필수
@@ -546,3 +546,4 @@ T-068 ── T-069 (GIF → README 업데이트)
 | 2026-05-23 | v2.9 | iOS 시뮬레이터 테스트 + 버그 수정 — React key 중복 수정(RoomDetailScreen cameraId+index 키), 녹화 API 500 수정(서버 `@RequestBody` → `@RequestParam`, 클라이언트 roomId 쿼리 파라미터 추가), roomId undefined 수정(`room?.id` → `room?.roomId`), Google 로그인 취소 후 캐시 토큰으로 진행되던 버그 수정. e2e-verify.sh roomId 파라미터 추가 + EC2 서버 재배포                                                                                                                                                                                                                     |
 | 2026-05-24 | v3.0 | 샘플 영상 YOLO 실시간 탐지 오버레이 — fire-sample.mp4(6초, 1.2MB) 앱 번들링, YOLO best.pt로 72프레임 탐지 데이터 추출(fire-sample-detections.json), FireEventVideoScreen 3단계 폴백(S3 URL → 번들 샘플+YOLO 오버레이 → 시뮬레이션), 실제 탐지 좌표 기반 바운딩 박스(fire: 빨강, smoke: 노랑) + 클래스명·신뢰도 라벨, 100ms 타이머로 프레임 동기화, 동적 프로그레스 바(S3: 2:15 / 샘플: 0:06)                                                                                                                                                                                      |
 | 2026-05-24 | v3.1 | 데모 데이터 인하대 테마 + expo-av 영상 재생 — demoData.ts 전면 개편(인하대 캠퍼스 건물 5개: 하이테크센터/정석학술정보관/2호관/60주년기념관/학생회관, 방 7개, 카메라 14대, 멤버 28명@inha.edu, 화재 이벤트 12건), 서버 데이터 부족 시 "데모 데이터를 채워볼까요?" 프롬프트 추가(HomeScreen), 데모 방 자동 판별(isDemoRoomId → RoomDetailScreen). expo-video → expo-av 전환(iOS 시뮬레이터에서 로컬 require() 에셋 재생 불가 해결), expo-av Video 컴포넌트 + onPlaybackStatusUpdate로 YOLO 탐지 박스 정확한 프레임 동기화, 데모 이벤트 불필요한 서버 API 호출(NOT_FOUND_BY_ID) 차단 |
+| 2026-05-24 | v3.2 | CCTVLiveScreen 데모 영상 폴백 — 데모 방(isDemoRoomId)에서 CCTV 실시간 영상 화면 진입 시 기존 CCTVSimulation(애니메이션 시뮬레이션) 대신 fire-sample.mp4 + YOLO 탐지 박스 오버레이를 자동 재생하는 DemoVideoFallback 컴포넌트 추가. expo-av Video(ResizeMode.COVER, isLooping, shouldPlay) + 프레임별 YOLO 바운딩 박스 + REC/카메라명/FIRE DETECTED HUD 오버레이. 비데모 방은 기존 CCTVSimulation 유지                                                                                                                                                                             |
