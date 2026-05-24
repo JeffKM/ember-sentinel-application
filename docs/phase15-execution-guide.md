@@ -237,7 +237,7 @@ python simulator.py --config config.production.yaml --source samples/fire-sample
 
 ### 사전 요구사항
 
-- EC2 서버 가동 중 (`***REMOVED_IP***:8080`)
+- EC2 서버 가동 중 (`<YOUR_SERVER_IP>:8080`)
 - Android 실기기에 APK 설치 완료 (T-061)
 - edge-IoT 시뮬레이터 macOS 설정 완료 (T-055~T-058)
 
@@ -254,14 +254,14 @@ cd /Users/jefflee/Projects/ember-sentinel
 ACCESS_TOKEN="<userToken>"
 
 # 2. 방 목록 확인
-curl -s http://***REMOVED_IP***:8080/room/list/me \
+curl -s http://<YOUR_SERVER_IP>:8080/room/list/me \
   -H "Authorization: Bearer $ACCESS_TOKEN" | python3 -m json.tool
 
 # 3. 카메라 디바이스 등록
 ROOM_ID=1
 DEVICE_UUID=$(uuidgen)
 
-curl -X POST http://***REMOVED_IP***:8080/room/${ROOM_ID}/camera-edge \
+curl -X POST http://<YOUR_SERVER_IP>:8080/room/${ROOM_ID}/camera-edge \
   -H "Authorization: Bearer $ACCESS_TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
@@ -270,7 +270,7 @@ curl -X POST http://***REMOVED_IP***:8080/room/${ROOM_ID}/camera-edge \
   }"
 
 # 4. 등록 확인
-curl -s http://***REMOVED_IP***:8080/room/${ROOM_ID}/detail \
+curl -s http://<YOUR_SERVER_IP>:8080/room/${ROOM_ID}/detail \
   -H "Authorization: Bearer $ACCESS_TOKEN" | python3 -m json.tool
 ```
 
@@ -295,7 +295,7 @@ python simulator.py --config config.production.yaml
 
 # 터미널 2: 스트리밍 토큰 발급 확인
 FIRE_EVENT_ID=<화재이벤트ID>
-curl -s http://***REMOVED_IP***:8080/fire-event/${FIRE_EVENT_ID}/stream/subscribe \
+curl -s http://<YOUR_SERVER_IP>:8080/fire-event/${FIRE_EVENT_ID}/stream/subscribe \
   -H "Authorization: Bearer $ACCESS_TOKEN" | python3 -m json.tool
 # token + url 필드가 반환되면 성공
 
@@ -309,7 +309,7 @@ curl -s http://***REMOVED_IP***:8080/fire-event/${FIRE_EVENT_ID}/stream/subscrib
 **검증 항목:**
 
 - [x] 스트리밍 구독 토큰 API 정상 발급 (`/fire-event/{id}/stream/subscribe`)
-- [x] LiveKit Cloud 접근 가능 (wss://***REMOVED_LIVEKIT_URL***)
+- [x] LiveKit Cloud 접근 가능 (<YOUR_LIVEKIT_URL>)
 - [ ] CCTVLiveScreen에서 실시간 영상 표시 + LIVE 배지 초록색
 - [ ] 시뮬레이터 중단 시 자동 재연결 시도 (최대 3회)
 
@@ -325,7 +325,7 @@ curl -s http://***REMOVED_IP***:8080/fire-event/${FIRE_EVENT_ID}/stream/subscrib
 
 # S3 Presigned URL 조회:
 FIRE_EVENT_ID=<화재이벤트ID>
-curl -s http://***REMOVED_IP***:8080/fire-event/${FIRE_EVENT_ID}/record \
+curl -s http://<YOUR_SERVER_IP>:8080/fire-event/${FIRE_EVENT_ID}/record \
   -H "Authorization: Bearer $ACCESS_TOKEN" | python3 -m json.tool
 
 # Presigned URL 유효성 검증 (HEAD 요청):
@@ -351,7 +351,7 @@ curl -sI "$RECORD_URL" | head -5
 
 # 방법 C: 수동 API 호출
 DEVICE_UUID="<등록된 카메라 UUID>"
-curl -X POST http://***REMOVED_IP***:8080/embedded/fire-event/publish \
+curl -X POST http://<YOUR_SERVER_IP>:8080/embedded/fire-event/publish \
   -H "Content-Type: application/json" \
   -H "X-Device-API-Key: <디바이스 API 키>" \
   -d "{
@@ -444,5 +444,5 @@ cd docs/demos && ./convert-demos.sh
 | LiveKit Cloud Egress 미지원       | T-065에서 녹화 URL 없음 | EC2에 LiveKit self-hosted 배포, 또는 스트리밍만 데모                |
 | google-services.json SHA-1 불일치 | Google 로그인 실패      | `eas credentials --platform android`로 SHA-1 확인 → Firebase에 등록 |
 | LiveKit Python SDK macOS 미지원   | import 에러             | `pip install livekit --upgrade`, 또는 ffmpeg RTMP 폴백              |
-| EC2 서버 다운                     | API 호출 타임아웃       | `ssh ec2-user@***REMOVED_IP***` → Docker 재시작, 또는 앱 데모 모드     |
+| EC2 서버 다운                     | API 호출 타임아웃       | `ssh ec2-user@<YOUR_SERVER_IP>` → Docker 재시작, 또는 앱 데모 모드  |
 | scrcpy 연결 실패                  | ADB device not found    | USB 디버깅 활성화, `adb devices` 확인, USB 케이블 교체              |

@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getStreamSubscribeToken } from '../config/api';
 
-// LiveKit Cloud URL (토큰 응답에 url이 없을 때 폴백)
-const LIVEKIT_CLOUD_URL = 'wss://***REMOVED_LIVEKIT_URL***';
+// LiveKit Cloud URL — .env에서 EXPO_PUBLIC_LIVEKIT_URL 환경변수 참조
+const LIVEKIT_CLOUD_URL = process.env.EXPO_PUBLIC_LIVEKIT_URL || '';
 
 // 연결 상태 머신
 export type StreamConnectionState =

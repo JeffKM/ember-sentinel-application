@@ -10,7 +10,7 @@
 
 set -euo pipefail
 
-API_BASE="http://***REMOVED_IP***:8080"
+API_BASE="${EMBER_API_BASE:-http://localhost:8080}"
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 YELLOW='\033[1;33m'

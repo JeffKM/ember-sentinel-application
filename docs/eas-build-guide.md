@@ -60,7 +60,7 @@ eas secret:create --scope project \
 모든 프로필에 `EXPO_PUBLIC_API_BASE_URL`이 설정되어 있습니다:
 
 ```
-EXPO_PUBLIC_API_BASE_URL=http://***REMOVED_IP***:8080
+EXPO_PUBLIC_API_BASE_URL=http://<YOUR_SERVER_IP>:8080
 ```
 
 > `src/config/api.ts:52`에서 `process.env.EXPO_PUBLIC_API_BASE_URL`로 참조
@@ -101,7 +101,7 @@ adb install <다운로드된.apk>
 
 ### 필수 확인사항
 
-1. **네트워크**: Android 디바이스가 EC2 서버(`***REMOVED_IP***:8080`)에 접근 가능한 네트워크에 연결
+1. **네트워크**: Android 디바이스가 EC2 서버(`<YOUR_SERVER_IP>:8080`)에 접근 가능한 네트워크에 연결
 2. **Google Play Services**: FCM 알림 수신을 위해 Google Play Services 설치 필요
 3. **알림 권한**: 앱 최초 실행 시 알림 권한 허용
 

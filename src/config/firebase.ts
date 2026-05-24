@@ -5,17 +5,15 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { saveFCMToken } from './api';
 
-// Firebase 설정
-// Firebase 콘솔 > 프로젝트 설정 > 일반 > 앱에서 확인 가능
-// Firebase 콘솔에서 웹 앱을 추가하고 아래 설정을 복사하세요
+// Firebase 설정 — .env에서 EXPO_PUBLIC_FIREBASE_* 환경변수 참조
 const firebaseConfig = {
-  apiKey: '***REMOVED_FIREBASE_KEY***',
-  authDomain: '***REMOVED_FIREBASE_PROJECT***.firebaseapp.com',
-  projectId: '***REMOVED_FIREBASE_PROJECT***',
-  storageBucket: '***REMOVED_FIREBASE_PROJECT***.firebasestorage.app',
-  messagingSenderId: '***REMOVED_FIREBASE_SENDER_ID***',
-  appId: '1:***REMOVED_FIREBASE_SENDER_ID***:web:d0b7f46165f1a4ee824b2d',
-  measurementId: '***REMOVED_FIREBASE_MEASUREMENT_ID***',
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || '',
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || '',
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || '',
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || '',
+  measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID || '',
 };
 
 // Firebase 초기화

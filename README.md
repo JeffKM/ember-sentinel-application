@@ -244,13 +244,9 @@ graph LR
 
 ## 구동 모습
 
-<!-- TODO: YouTube 영상 업로드 후 VIDEO_ID를 실제 값으로 교체 -->
-
-[![Ember Sentinel 데모](https://img.youtube.com/vi/VIDEO_ID/maxresdefault.jpg)](https://www.youtube.com/watch?v=VIDEO_ID)
-
-> 영상을 클릭하면 YouTube에서 전체 앱 사용 플로우를 확인할 수 있습니다.
+> **준비 중**: 전체 E2E 시연 영상을 촬영하여 업로드할 예정입니다.
 >
-> **포함 내용**: 소셜 로그인 → 홈 대시보드 → 화재 감지 푸시 알림 → CCTV 실시간 스트리밍 → 녹화 영상 재생 → 건물 평면도
+> **포함 예정 내용**: 소셜 로그인 → 홈 대시보드 → 화재 감지 푸시 알림 → CCTV 실시간 스트리밍 → 녹화 영상 재생 → 건물 평면도
 
 ---
 
@@ -389,11 +385,13 @@ npm run type-check            # TypeScript 타입 체크
 
 ### 추가 문서
 
-| 문서                                            | 설명                               |
-| ----------------------------------------------- | ---------------------------------- |
-| [PRD](docs/PRD.md)                              | 프로젝트 요구사항 정의서           |
-| [ROADMAP](docs/ROADMAP.md)                      | 개발 로드맵 (12 Phase, 47 태스크)  |
-| [인프라 비용 분석](docs/infra-cost-analysis.md) | AWS 월 ~$197 상세, 4가지 대안 비교 |
+| 문서                                                    | 설명                                    |
+| ------------------------------------------------------- | --------------------------------------- |
+| [PRD](docs/PRD.md)                                      | 프로젝트 요구사항 정의서                |
+| [ROADMAP](docs/ROADMAP.md)                              | 개발 로드맵 (16 Phase, 73 태스크)       |
+| [인프라 비용 분석](docs/infra-cost-analysis.md)         | AWS 월 ~$197 상세, 4가지 대안 비교      |
+| [EAS 빌드 가이드](docs/eas-build-guide.md)              | EAS Build로 Android APK/iOS 빌드 가이드 |
+| [Phase 15 실행 가이드](docs/phase15-execution-guide.md) | 프로덕션 데모 환경 구축 상세 실행 절차  |
 
 ---
 
@@ -454,20 +452,35 @@ ember-sentinel/
 │   │   ├── firebase.ts           # FCM 토큰 발급 및 리스너
 │   │   └── socialLogin.ts        # Google/Kakao 소셜 로그인
 │   ├── components/               # 재사용 UI 컴포넌트
+│   │   ├── PushNotificationBanner.tsx   # 포그라운드 푸시 알림 배너
+│   │   ├── LiveKitVideoView.tsx         # LiveKit WebRTC 영상 뷰
+│   │   ├── ConnectionStatusOverlay.tsx  # 연결 상태 오버레이
+│   │   ├── CCTVParticles.tsx            # CCTV 시뮬레이션 파티클
+│   │   └── floor-plan/                  # 건물 평면도 컴포넌트
+│   │       ├── FloorSelector.tsx        # 층 선택 (B1~12층)
+│   │       ├── RoomCell.tsx             # 방 셀 (화재 애니메이션)
+│   │       ├── FloorPlanView.tsx        # 평면도 레이아웃
+│   │       └── EvacuationOverlay.tsx    # 대피 경로 오버레이
 │   ├── contexts/                 # AuthContext (인증 상태 관리)
-│   ├── hooks/                    # 커스텀 훅 (useLiveKitStream 등)
+│   ├── hooks/                    # 커스텀 훅
+│   │   └── useLiveKitStream.ts   # LiveKit WebRTC 스트리밍 훅
 │   ├── data/                     # 데모 데이터 세트
 │   ├── types/                    # TypeScript 도메인 타입
-│   └── utils/                    # 유틸리티 (네트워크, 푸시 알림)
+│   └── utils/                    # 유틸리티
+│       ├── networkTest.ts        # 네트워크 연결 테스트
+│       ├── pushNotification.ts   # 푸시 알림 유틸
+│       └── floorUtils.ts         # 층/방 파싱 및 생성 유틸
 ├── docs/
 │   ├── adr/                      # Architecture Decision Records (8개)
 │   ├── diagrams/                 # Mermaid 다이어그램 (3개)
 │   ├── api/                      # Postman Collection
-│   ├── demos/                    # 데모 GIF 영상 (4개)
+│   ├── demos/                    # 데모 GIF 영상
 │   ├── screenshots/              # 앱 스크린샷
 │   ├── PRD.md                    # 프로젝트 요구사항 정의서
 │   ├── ROADMAP.md                # 개발 로드맵
-│   └── infra-cost-analysis.md    # 인프라 비용 분석
+│   ├── infra-cost-analysis.md    # 인프라 비용 분석
+│   ├── eas-build-guide.md        # EAS Build 가이드
+│   └── phase15-execution-guide.md # 프로덕션 데모 실행 가이드
 ├── .github/workflows/ci.yml     # GitHub Actions CI
 ├── tsconfig.json                 # TypeScript 설정 (strict)
 ├── eslint.config.mjs             # ESLint 10 (flat config)

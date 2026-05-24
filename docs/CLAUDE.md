@@ -289,8 +289,8 @@ python inference.py       # 평가
 
 ### 설정 (코드 하드코딩)
 
-- LiveKit 서버: Terraform 코드에는 `ws://54.187.131.131:7880`이 남아있으나, 실제 운영은 **LiveKit Cloud** (`wss://***REMOVED_LIVEKIT_URL***`) 사용
-- API 서버: `http://***REMOVED_IP***:8080` (ap-southeast-2)
+- LiveKit 서버: Terraform 코드에는 `ws://54.187.131.131:7880`이 남아있으나, 실제 운영은 **LiveKit Cloud** (`<YOUR_LIVEKIT_URL>`) 사용
+- API 서버: `http://<YOUR_SERVER_IP>:8080` (ap-southeast-2)
 - YOLO 모델: `./experiments/yolov11n/weights/best_ncnn_model`
 - Arduino BLE MAC: `90:9F:4D:1A:35:A1`
 
@@ -316,7 +316,7 @@ python inference.py       # 평가
 | **S3**                         | inha-capstone-04-s3-bucket-{random} | 녹화 영상 저장                       | 프리 티어 범위 내 |
 
 > **참고**: Terraform 코드에는 EC2 2대(API t3.medium + LiveKit m5.xlarge) 구성이 정의되어 있으나,
-> 실제로는 t3.micro 단일 인스턴스(`ember-sentinel-api`, IP: ***REMOVED_IP***)만 운영 중이다.
+> 실제로는 t3.micro 단일 인스턴스(`ember-sentinel-api`, IP: <YOUR_SERVER_IP>)만 운영 중이다.
 > LiveKit은 별도 EC2 없이 동일 인스턴스 또는 외부 서비스로 처리하는 것으로 보인다.
 
 ### AWS 비용 현황
@@ -367,7 +367,7 @@ terraform destroy -var-file="secrets.tfvars"   # 인프라 전체 파괴
     → FCM 푸시 알림 → [ember-sentinel 모바일 앱]
 
 2. [edge-IoT] LiveKit WebRTC 스트리밍
-    → [LiveKit Cloud] (wss://***REMOVED_LIVEKIT_URL***)
+    → [LiveKit Cloud] (<YOUR_LIVEKIT_URL>)
     → [ember-sentinel 모바일 앱] GET /fire-event/{id}/stream/subscribe로 시청 토큰 발급
 
 3. [LiveKit Cloud Egress] 녹화 종료

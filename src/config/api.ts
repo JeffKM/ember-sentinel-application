@@ -48,8 +48,8 @@ export class ApiError extends Error {
 // ─── 토큰 갱신 중복 방지 ─────────────────────────────────
 let refreshPromise: Promise<TokenRefreshResponse> | null = null;
 
-// API 기본 설정 — 환경 변수로 오버라이드 가능
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://***REMOVED_IP***:8080';
+// API 기본 설정 — .env에서 EXPO_PUBLIC_API_BASE_URL 환경변수 참조
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:8080';
 
 // 에러 분류 헬퍼
 function classifyHttpError(status: number, body: string): ApiError {

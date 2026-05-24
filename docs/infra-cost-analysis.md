@@ -21,7 +21,7 @@
 | **합계**         |                            |                      |    **$0**     | 크레딧으로 전액 충당   |
 
 > **LiveKit**: 자체 호스팅 EC2 없이 **LiveKit Cloud** (무료 티어) 사용 중
-> (`wss://***REMOVED_LIVEKIT_URL***`)
+> (`<YOUR_LIVEKIT_URL>`)
 
 ### 1.2 AWS 크레딧 현황
 
