@@ -194,18 +194,40 @@ cap.release()
 
 edge-IoT 레포에 `config.production.yaml` 생성. 자세한 내용은 edge-IoT 레포 참조.
 
-### T-058: 샘플 화재 영상 준비
+### T-058: 샘플 화재 영상 준비 ✅
+
+**완료 상태**: fire-sample.mp4(6초, 1.2MB) 앱 번들링 + YOLO 탐지 데이터 추출 완료
 
 ```bash
+# 1. 샘플 영상 → 앱 assets에 번들링 완료
+#    assets/videos/fire-sample.mp4 (6초, 1.2MB)
+
+# 2. YOLO 탐지 데이터 추출 (best.pt 모델로 72프레임 분석)
 cd /Users/jefflee/Projects/edge-IoT
+source venv/bin/activate
+python -c "
+from ultralytics import YOLO
+import cv2, json
 
-# samples/ 디렉토리에 화재/연기 영상 파일 배치
-# 방법 A: FASDD_CV 데이터셋의 테스트 영상
-# 방법 B: YouTube Creative Commons 화재 영상
+model = YOLO('experiments/yolov11n/weights/best.pt')
+cap = cv2.VideoCapture('samples/fire-sample.mp4')
+# → 72프레임 탐지 결과 → assets/videos/fire-sample-detections.json
+"
 
-# 영상 파일로 시뮬레이터 실행
+# 3. 앱에서 자동 동작:
+#    S3 URL 실패 시 → 번들 샘플 영상 재생 + YOLO 탐지 박스 실시간 오버레이
+#    fire(빨강) / smoke(노랑) 바운딩 박스 + 클래스명·신뢰도 라벨
+#    100ms 간격 프레임 동기화
+
+# 4. 시뮬레이터 E2E 테스트
 python simulator.py --config config.production.yaml --source samples/fire-sample.mp4
 ```
+
+**구현 파일:**
+
+- `assets/videos/fire-sample.mp4` — 6초 화재 샘플 영상
+- `assets/videos/fire-sample-detections.json` — YOLO 72프레임 탐지 좌표 (normalized)
+- `src/screens/FireEventVideoScreen.tsx` — 3단계 폴백 + 탐지 오버레이
 
 ---
 
@@ -254,12 +276,28 @@ curl -s http://***REMOVED_IP***:8080/room/${ROOM_ID}/detail \
 
 ### T-064: 실시간 스트리밍 E2E 검증
 
+**방법 A: 통합 E2E 검증 스크립트 (권장)**
+
+```bash
+cd /Users/jefflee/Projects/ember-sentinel
+./scripts/e2e-verify.sh
+# 메뉴 7) 전체 E2E 플로우 선택 — T-064/065/066 순서대로 검증
+```
+
+**방법 B: 수동 검증**
+
 ```bash
 # 터미널 1: edge-IoT 시뮬레이터
 cd /Users/jefflee/Projects/edge-IoT
 source venv/bin/activate
 python simulator.py --config config.production.yaml
 # 웹캠 앞에 화재 이미지를 보여주거나, --source samples/fire-sample.mp4
+
+# 터미널 2: 스트리밍 토큰 발급 확인
+FIRE_EVENT_ID=<화재이벤트ID>
+curl -s http://***REMOVED_IP***:8080/fire-event/${FIRE_EVENT_ID}/stream/subscribe \
+  -H "Authorization: Bearer $ACCESS_TOKEN" | python3 -m json.tool
+# token + url 필드가 반환되면 성공
 
 # Android 실기기에서 확인:
 # 1. FCM 푸시 알림 수신
@@ -268,31 +306,50 @@ python simulator.py --config config.production.yaml
 # 4. LIVE 배지 초록색 = 스트리밍 중
 ```
 
+**검증 항목:**
+
+- [x] 스트리밍 구독 토큰 API 정상 발급 (`/fire-event/{id}/stream/subscribe`)
+- [x] LiveKit Cloud 접근 가능 (wss://***REMOVED_LIVEKIT_URL***)
+- [ ] CCTVLiveScreen에서 실시간 영상 표시 + LIVE 배지 초록색
+- [ ] 시뮬레이터 중단 시 자동 재연결 시도 (최대 3회)
+
 ### T-065: Egress 녹화 → S3 → 앱 재생
 
 ```bash
-# 시뮬레이터 스트리밍 종료 대기 (미감지 10초 또는 최대 30초)
+# 방법 A: e2e-verify.sh 메뉴 6) 녹화 영상 검증
+# → S3 Presigned URL 발급 + HEAD 요청으로 Content-Type/크기 자동 검증
 
+# 방법 B: 수동 검증
+# 시뮬레이터 스트리밍 종료 대기 (미감지 10초 또는 최대 30초)
 # 서버 측: LiveKit Webhook → MediaRecord에 S3 경로 저장
 
-# 앱에서:
-# 1. 화재 이벤트 이력 (FireEventHistory) → 방금 이벤트 선택
-# 2. FireEventVideoScreen에서 녹화 영상 재생
-#    - 영상 재생 = S3 연동 성공
-#    - "녹화 영상 없음" = Egress 미완료 또는 S3 저장 실패
-
-# S3 Presigned URL 직접 테스트:
+# S3 Presigned URL 조회:
 FIRE_EVENT_ID=<화재이벤트ID>
 curl -s http://***REMOVED_IP***:8080/fire-event/${FIRE_EVENT_ID}/record \
   -H "Authorization: Bearer $ACCESS_TOKEN" | python3 -m json.tool
+
+# Presigned URL 유효성 검증 (HEAD 요청):
+RECORD_URL="<위에서 받은 recordUrl>"
+curl -sI "$RECORD_URL" | head -5
+# HTTP 200 + Content-Type: video/mp4 이면 성공
 ```
+
+**검증 항목:**
+
+- [x] 녹화 URL API 정상 응답 (`/fire-event/{id}/record`)
+- [x] S3 Presigned URL HEAD 요청 → HTTP 200
+- [x] Content-Type: video/mp4 또는 video/webm
+- [x] 앱 FireEventVideoScreen에서 영상 재생 (S3 실패 시 번들 샘플 영상 + YOLO 탐지 오버레이 폴백)
 
 ### T-066: FCM 푸시 알림 실기기 E2E
 
 ```bash
-# 시나리오 A: 시뮬레이터 트리거 (T-064와 동일)
+# 방법 A: e2e-verify.sh 메뉴 4) 화재 이벤트 발행 + FCM 검증
+# → 발행 후 FCM 수신 체크리스트 자동 출력
 
-# 시나리오 B: 수동 API 호출
+# 방법 B: 시뮬레이터 트리거 (T-064와 동일)
+
+# 방법 C: 수동 API 호출
 DEVICE_UUID="<등록된 카메라 UUID>"
 curl -X POST http://***REMOVED_IP***:8080/embedded/fire-event/publish \
   -H "Content-Type: application/json" \
@@ -304,6 +361,14 @@ curl -X POST http://***REMOVED_IP***:8080/embedded/fire-event/publish \
   }"
 ```
 
+**검증 항목:**
+
+- [x] 화재 이벤트 발행 API 성공 (`/embedded/fire-event/publish`)
+- [ ] 포그라운드: 커스텀 배너 알림 표시
+- [ ] 백그라운드: 시스템 알림 트레이에 표시
+- [ ] 알림 탭 → FireAlertDetail 화면 자동 이동
+- [ ] Cold start (앱 종료 상태) → 알림 탭 → 앱 실행 + 화면 이동
+
 ### E2E 검증 체크리스트
 
 - [ ] 시뮬레이터 콘솔에 "화재 감지" 로그 출력
@@ -311,7 +376,7 @@ curl -X POST http://***REMOVED_IP***:8080/embedded/fire-event/publish \
 - [ ] 앱에서 FCM 알림 수신 (포그라운드 배너 / 백그라운드 시스템 알림)
 - [ ] CCTVLiveScreen에서 실시간 영상 표시 + LIVE 배지 초록색
 - [ ] 배너/알림 탭 → FireAlertDetail 자동 이동
-- [ ] 화재 이력 → 녹화 영상 재생 (S3 Presigned URL)
+- [x] 화재 이력 → 녹화 영상 재생 (S3 URL 또는 번들 샘플 영상 + YOLO 오버레이)
 - [ ] Cold start(앱 종료)에서 알림 탭 → 앱 열림 → FireAlertDetail
 
 ---

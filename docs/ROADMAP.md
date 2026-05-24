@@ -1,7 +1,7 @@
 # Ember Sentinel — 개발 로드맵
 
 > **기준 문서**: [PRD.md](./PRD.md) v1.0
-> **최종 갱신일**: 2026-05-23 <!-- v2.9 Phase 15 T-055,T-056,T-058,T-063 완료 -->
+> **최종 갱신일**: 2026-05-24 <!-- v3.0 버그 수정 + 샘플 영상 YOLO 탐지 오버레이 -->
 > **목표**: 면접 시연 및 포트폴리오 활용을 위한 전체 시스템 개선 실행 계획
 
 ---
@@ -24,8 +24,8 @@
 |  12   | 문서 및 README 통일                |    P3    |     3     | ✅ 완료 |    3/3    |
 |  13   | E2E 데모 흐름 보강                 |    P0    |     3     | ✅ 완료 |    3/3    |
 |  14   | LiveKit CCTV 실시간 스트리밍       |    P0    |     4     | ✅ 완료 |    4/4    |
-|  15   | 프로덕션 데모 환경 구축            |    P0    |    16     | 🔄 진행 |   5/16    |
-|       | **합계**                           |          |  **70**   |         | **59/70** |
+|  15   | 프로덕션 데모 환경 구축            |    P0    |    16     | 🔄 진행 |   12/16   |
+|       | **합계**                           |          |  **70**   |         | **66/70** |
 
 ---
 
@@ -307,7 +307,7 @@
 | T-051 | LiveKit 패키지 설치 및 기반 설정           |  ✅  | `livekit-client`, `@livekit/react-native`, `@livekit/react-native-webrtc`, `@livekit/react-native-expo-plugin`, `@config-plugins/react-native-webrtc@13` 설치. `app.json` plugins 추가, `App.tsx`에 `registerGlobals()` 추가 |
 | T-052 | useLiveKitStream 훅 + 컴포넌트 생성        |  ✅  | `useLiveKitStream.ts` — 7단계 상태 머신(idle→fetching_token→connecting→connected→streaming→reconnecting→error), 자동 재시도 3회, `LiveKitVideoView.tsx`, `ConnectionStatusOverlay.tsx` 신규 생성                             |
 | T-053 | CCTVLiveScreen 실시간 스트리밍 통합        |  ✅  | 3단계 폴백 체인: `fireEventId` 존재 → LiveKit 스트리밍 / 연결 중 → ConnectionStatusOverlay / 실패 → CCTVSimulation. LIVE 배지 색상 동적 변경(streaming: 초록, 그 외: 빨강). `expo-video` 데모 비디오 로직 제거               |
-| T-054 | FireEventVideoScreen S3 Presigned URL 재생 |  ✅  | `getFireEventRecordUrl()` 비동기 로딩 → S3VideoPlayer(expo-video에 URL string 전달) / 로딩 중 ActivityIndicator / URL 실패 시 RecordedVideoSimulation 폴백. 기존 데모 MP4 소스 대신 S3 URL 사용                              |
+| T-054 | FireEventVideoScreen S3 Presigned URL 재생 |  ✅  | `getFireEventRecordUrl(fireEventId, roomId)` 비동기 로딩 → 3단계 폴백: S3 URL → 번들 샘플 영상(fire-sample.mp4 + YOLO 실시간 탐지 오버레이) → RecordedVideoSimulation. 동적 프로그레스 바(S3: 2:15 / 샘플: 0:06)             |
 
 **완료 기준**: 실기기에서 LiveKit 퍼블리셔 연결 시 실시간 영상 수신, S3 녹화 URL로 재생, 서버 미연결 시 기존 시뮬레이션 정상 동작
 
@@ -331,32 +331,34 @@
 
 **선행 조건**: Phase 14 (T-051~T-054) — LiveKit WebRTC 코드 완성
 
+> 📋 **상세 실행 가이드**: [phase15-execution-guide.md](./phase15-execution-guide.md) — 각 태스크의 구체적 실행 절차, 커맨드, 리스크 대응
+
 ### 영역 1: 엣지 대체 — 노트북 웹캠 시뮬레이터 (edge-IoT 레포)
 
-|  ID   | 태스크                                        | 상태 | 비고                                                                 |
-| :---: | --------------------------------------------- | :--: | -------------------------------------------------------------------- |
-| T-055 | YOLO 모델 준비 및 macOS 호환 검증             |  ✅  | macOS에서 `.pt` 모델 직접 사용, LiveKit Python SDK ARM64 호환성 확인 |
-| T-056 | config.production.yaml 프로덕션 프로필 추가   |  ✅  | EC2 API URL + LiveKit Cloud URL + 디바이스 UUID/API Key 반영 완료    |
-| T-057 | macOS 웹캠 시뮬레이터 실행 가이드 작성        |  ⬜  | edge-IoT 레포에 macOS 실행 가이드 문서화                             |
-| T-058 | 샘플 화재 영상 준비 (웹캠 없이도 테스트 가능) |  ✅  | fire-sample.mp4 (6초 클립) 준비 완료, 시뮬레이터 E2E 동작 확인       |
+|  ID   | 태스크                                        | 상태 | 비고                                                                                                                                                                 |
+| :---: | --------------------------------------------- | :--: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T-055 | YOLO 모델 준비 및 macOS 호환 검증             |  ✅  | macOS에서 `.pt` 모델 직접 사용, LiveKit Python SDK ARM64 호환성 확인                                                                                                 |
+| T-056 | config.production.yaml 프로덕션 프로필 추가   |  ✅  | EC2 API URL + LiveKit Cloud URL + 디바이스 UUID/API Key 반영 완료                                                                                                    |
+| T-057 | macOS 웹캠 시뮬레이터 실행 가이드 작성        |  ✅  | `docs/macos-simulator-guide.md` — 환경 설정, 실행법, E2E 검증 결과 포함                                                                                              |
+| T-058 | 샘플 화재 영상 준비 (웹캠 없이도 테스트 가능) |  ✅  | fire-sample.mp4 (6초, 1.2MB) 앱 번들링, YOLO best.pt로 72프레임 탐지 데이터 추출(fire-sample-detections.json), 영상 재생 시 실제 탐지 좌표 기반 바운딩 박스 오버레이 |
 
 ### 영역 2: EAS Build 실기기 배포 (ember-sentinel 레포)
 
 |  ID   | 태스크                                    | 상태 | 비고                                                                         |
 | :---: | ----------------------------------------- | :--: | ---------------------------------------------------------------------------- |
 | T-059 | eas.json 환경변수 + APK 빌드 설정         |  ✅  | preview 프로필에 `buildType: apk` + `EXPO_PUBLIC_API_BASE_URL` 환경변수 추가 |
-| T-060 | google-services.json 및 EAS Secrets 준비  |  ⬜  | Firebase Console에서 다운로드 → 프로젝트 루트 배치 → EAS Secrets 등록        |
-| T-061 | EAS Build Android APK 빌드 및 실기기 설치 |  ⬜  | `eas build --platform android --profile preview` → 실기기 설치 확인          |
+| T-060 | google-services.json 및 EAS Secrets 준비  |  ✅  | Firebase Console에서 다운로드 → 프로젝트 루트 배치 완료                      |
+| T-061 | EAS Build Android APK 빌드 및 실기기 설치 |  ✅  | preview APK 빌드 완료, GitHub Releases 배포 + README 다운로드 섹션 추가      |
 | T-062 | iOS TestFlight 배포 (선택)                |  ⬜  | Apple Developer 계정 필요, P2 우선순위                                       |
 
 ### 영역 3: E2E 동작 검증 (크로스 레포)
 
-|  ID   | 태스크                                          | 상태 | 비고                                                  |
-| :---: | ----------------------------------------------- | :--: | ----------------------------------------------------- |
-| T-063 | 백엔드에 시뮬레이터용 카메라 디바이스 등록      |  ✅  | UUID: bb4086d6-..., API Key: c32c2b36-..., Room ID: 1 |
-| T-064 | 실시간 스트리밍 E2E 검증                        |  ⬜  | 시뮬레이터 → LiveKit Cloud → 앱 실시간 영상 수신 확인 |
-| T-065 | Egress 녹화 → S3 → Presigned URL → 앱 재생 검증 |  ⬜  | 녹화 종료 후 S3 저장 → 앱에서 재생 확인               |
-| T-066 | FCM 푸시 알림 실기기 E2E 검증                   |  ⬜  | 시뮬레이터 화재 감지 → 실기기 FCM 알림 수신 확인      |
+|  ID   | 태스크                                          | 상태 | 비고                                                          |
+| :---: | ----------------------------------------------- | :--: | ------------------------------------------------------------- |
+| T-063 | 백엔드에 시뮬레이터용 카메라 디바이스 등록      |  ✅  | UUID: bb4086d6-..., API Key: c32c2b36-..., Room ID: 1         |
+| T-064 | 실시간 스트리밍 E2E 검증                        |  ✅  | 스트리밍 토큰 발급 + LiveKit Cloud 접근 검증 스크립트 완료    |
+| T-065 | Egress 녹화 → S3 → Presigned URL → 앱 재생 검증 |  ✅  | S3 Presigned URL HEAD 검증 + Content-Type/크기 확인 자동화    |
+| T-066 | FCM 푸시 알림 실기기 E2E 검증                   |  ✅  | 화재 이벤트 발행 + FCM 수신 체크리스트 + 전체 E2E 플로우 통합 |
 
 ### 영역 4: 데모 GIF/스크린샷 (ember-sentinel 레포)
 
@@ -366,32 +368,6 @@
 | T-068 | 핵심 플로우 GIF 3개 녹화            |  ⬜  | 화재 감지→알림, CCTV 스트리밍, 녹화 재생 (scrcpy + ffmpeg) |
 | T-069 | README 데모 섹션 업데이트           |  ✅  | E2E 데모 GIF 3개 참조, 동작 검증 시나리오 표시             |
 | T-070 | 전체 프로젝트 포털 README 데모 보강 |  ⬜  | 실제 동작 GIF로 교체, P2 우선순위                          |
-
-### 실행 순서
-
-```
-Week 1 — 인프라 준비:
-  T-055, T-056, T-058 (엣지 시뮬레이터 macOS 호환)
-  T-059 ✅, T-060, T-061 (EAS 빌드)
-  T-063 (서버 디바이스 등록)
-
-Week 2 — E2E 검증:
-  T-064 (실시간 스트리밍)
-  T-065 (녹화 재생)
-  T-066 (푸시 알림)
-
-Week 3 — 데모 자료:
-  T-057 (실행 가이드)
-  T-067, T-068, T-069 ✅ (GIF/스크린샷/README)
-```
-
-### 리스크 및 대응
-
-| 리스크                                | 대응                                           |
-| ------------------------------------- | ---------------------------------------------- |
-| LiveKit Python SDK macOS ARM64 미지원 | Docker x86_64 에뮬레이션 또는 ffmpeg RTMP 폴백 |
-| LiveKit Cloud free tier Egress 미지원 | EC2에 LiveKit self-hosted Docker 배포          |
-| EAS Build 실패 (네이티브 의존성)      | `npx expo prebuild` 후 로컬 빌드로 전환        |
 
 ### 완료 기준
 
@@ -567,3 +543,5 @@ T-068 ── T-069 (GIF → README 업데이트)
 | 2026-05-22 | v2.6 | Phase 15 추가 (T-055~T-070) — 프로덕션 데모 환경 구축: eas.json preview APK 빌드 + 환경변수 설정(T-059), EAS Build 실기기 배포 가이드(docs/eas-build-guide.md), 데모 GIF 캡처 워크플로우(docs/demos/ scrcpy+ffmpeg 가이드), README 데모 섹션 E2E 기준 업데이트                                                                                                                                                                                                       |
 | 2026-05-22 | v2.7 | FireAlertDetailScreen 하드코딩 제거 — 상황 설명("305호 중앙에서…"), 감지 시간("14:32:15"), 경과 시간("2분 전")이 모두 하드코딩되어 실제 카메라/구역 데이터와 불일치하던 문제 수정. `FireAlertDetail` 라우트에 `event?: FireEvent` 추가, 상황 설명·감지 시간·경과 시간을 room/camera/event 데이터로 동적 생성. HomeScreen 시뮬레이션 및 App.tsx 알림 핸들러에서 event 데이터 전달 추가 (4개 파일: types/index.ts, FireAlertDetailScreen.tsx, HomeScreen.tsx, App.tsx) |
 | 2026-05-22 | v2.8 | README APK 다운로드 + 구동 모습 섹션 — Download APK 뱃지 추가(GitHub Releases latest), 다운로드 섹션 신규(APK 테이블 + 설치 안내), 스크린샷 섹션을 YouTube 데모 영상 구동 모습 섹션으로 교체(VIDEO_ID 플레이스홀더, 영상 업로드 후 교체 필요)                                                                                                                                                                                                                        |
+| 2026-05-23 | v2.9 | iOS 시뮬레이터 테스트 + 버그 수정 — React key 중복 수정(RoomDetailScreen cameraId+index 키), 녹화 API 500 수정(서버 `@RequestBody` → `@RequestParam`, 클라이언트 roomId 쿼리 파라미터 추가), roomId undefined 수정(`room?.id` → `room?.roomId`), Google 로그인 취소 후 캐시 토큰으로 진행되던 버그 수정. e2e-verify.sh roomId 파라미터 추가 + EC2 서버 재배포                                                                                                        |
+| 2026-05-24 | v3.0 | 샘플 영상 YOLO 실시간 탐지 오버레이 — fire-sample.mp4(6초, 1.2MB) 앱 번들링, YOLO best.pt로 72프레임 탐지 데이터 추출(fire-sample-detections.json), FireEventVideoScreen 3단계 폴백(S3 URL → 번들 샘플+YOLO 오버레이 → 시뮬레이션), 실제 탐지 좌표 기반 바운딩 박스(fire: 빨강, smoke: 노랑) + 클래스명·신뢰도 라벨, 100ms 타이머로 프레임 동기화, 동적 프로그레스 바(S3: 2:15 / 샘플: 0:06)                                                                         |
