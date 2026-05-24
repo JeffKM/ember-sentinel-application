@@ -96,6 +96,49 @@ export default function HomeScreen({ navigation, onLogout, userRole }: HomeScree
     }
   }, [offlineModeChecked, isOfflineMode]);
 
+  // 데모 데이터 병합 (서버 데이터 + 데모 데이터)
+  const mergeWithDemoData = (serverData?: RoomSummaryResponse | null) => {
+    const demoData = getDemoRoomData();
+    const serverRooms = serverData?.roomList || [];
+    const mergedRooms = [...serverRooms, ...demoData.roomList];
+    setRoomData({
+      totalRoomCount: mergedRooms.length,
+      totalCameraCount: (serverData?.totalCameraCount || 0) + demoData.totalCameraCount,
+      liveStreamCount: (serverData?.liveStreamCount || 0) + demoData.liveStreamCount,
+      roomList: mergedRooms,
+    });
+  };
+
+  // 데이터가 비어있을 때 데모 데이터 추가 여부 확인
+  const promptDemoData = (serverData?: RoomSummaryResponse | null) => {
+    Alert.alert(
+      '데모 데이터 추가',
+      '등록된 방이 없습니다.\n인하대 캠퍼스 데모 데이터를 채워볼까요?',
+      [
+        {
+          text: '아니요',
+          style: 'cancel',
+          onPress: () => {
+            setRoomData(
+              serverData || {
+                totalRoomCount: 0,
+                totalCameraCount: 0,
+                liveStreamCount: 0,
+                roomList: [],
+              },
+            );
+          },
+        },
+        {
+          text: '추가할게요',
+          onPress: () => {
+            mergeWithDemoData(serverData);
+          },
+        },
+      ],
+    );
+  };
+
   const loadRoomData = async () => {
     if (isOfflineMode) {
       // 오프라인 모드일 때는 데모 데이터 사용
@@ -109,7 +152,13 @@ export default function HomeScreen({ navigation, onLogout, userRole }: HomeScree
       console.log('🔄 Room 데이터 로딩 시작...');
 
       const data = await getRoomData();
-      setRoomData(data);
+
+      // 서버 데이터가 비어있으면 데모 데이터 추가 여부 확인
+      if (!data || !data.roomList || data.roomList.length === 0) {
+        promptDemoData(data);
+      } else {
+        setRoomData(data);
+      }
       console.log('✅ Room 데이터 로딩 완료');
     } catch (error) {
       console.error('❌ Room 데이터 로딩 실패:', error);

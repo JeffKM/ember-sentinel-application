@@ -22,7 +22,7 @@ import {
   addCameraToRoom,
   removeCameraFromRoom,
 } from '../config/api';
-import { getDemoRoomDetail } from '../data/demoData';
+import { getDemoRoomDetail, isDemoRoomId } from '../data/demoData';
 import type { StackScreenProps } from '@react-navigation/stack';
 import type { RootStackParamList, RoomDetail, Member, Camera } from '../types';
 
@@ -80,8 +80,8 @@ export default function RoomDetailScreen({ route, navigation }: RoomDetailScreen
   }, [room.roomId, offlineModeChecked, isOfflineMode]);
 
   const loadRoomDetail = async () => {
-    if (isOfflineMode) {
-      // 오프라인 모드일 때는 데모 데이터 사용
+    if (isOfflineMode || isDemoRoomId(room.roomId)) {
+      // 오프라인 모드이거나 데모 방이면 데모 데이터 사용
       setRoomDetail(getDemoRoomDetail(room.roomId));
       setIsLoading(false);
       return;

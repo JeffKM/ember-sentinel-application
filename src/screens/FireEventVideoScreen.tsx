@@ -9,23 +9,12 @@ import {
   Animated,
   ActivityIndicator,
 } from 'react-native';
+import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import type { StackScreenProps } from '@react-navigation/stack';
 import type { RootStackParamList } from '../types';
 import { FlameParticle, SmokeParticle } from '../components/CCTVParticles';
 import { getFireEventRecordUrl } from '../config/api';
-
-// expo-video 동적 import — 로드 실패 시 정적 목업으로 폴백
-let ExpoVideoView: React.ComponentType<any> | null = null;
-let useVideoPlayer: ((source: any, setup?: (player: any) => void) => any) | null = null;
-try {
-  const expoVideo = require('expo-video');
-  ExpoVideoView = expoVideo.VideoView;
-  useVideoPlayer = expoVideo.useVideoPlayer;
-} catch (e) {
-  console.log('expo-video 로드 실패, 정적 목업으로 폴백');
-}
-
-const canPlayVideo = !!(ExpoVideoView && useVideoPlayer);
+import { isDemoRoomId } from '../data/demoData';
 
 // 번들된 샘플 화재 영상 + YOLO 탐지 데이터
 const SAMPLE_FIRE_VIDEO = require('../../assets/videos/fire-sample.mp4');
@@ -54,38 +43,46 @@ function getDetectionsAtTime(time: number): DetectionBox[] {
   return closest.boxes;
 }
 
-// 영상 재생 컴포넌트 (S3 URL 또는 로컬 에셋)
+// 영상 재생 컴포넌트 (expo-av 기반)
 function VideoPlayer({
   source,
   isPlaying,
   onToggle,
+  onPlaybackUpdate,
 }: {
   source: string | number; // URL string 또는 require() 에셋
   isPlaying: boolean;
   onToggle: () => void;
+  onPlaybackUpdate?: (positionSec: number) => void;
 }) {
-  const player = useVideoPlayer!(source, (p: any) => {
-    p.loop = true;
-  });
+  const videoRef = useRef<Video>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
+    if (!videoRef.current) return;
     if (isPlaying) {
-      player.play();
+      videoRef.current.playAsync();
     } else {
-      player.pause();
+      videoRef.current.pauseAsync();
     }
-  }, [isPlaying, player]);
+  }, [isPlaying]);
+
+  const videoSource = typeof source === 'number' ? source : { uri: source };
 
   return (
     <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={0.9} onPress={onToggle}>
-      {ExpoVideoView && (
-        <ExpoVideoView
-          player={player}
-          style={StyleSheet.absoluteFill}
-          contentFit="cover"
-          nativeControls={false}
-        />
-      )}
+      <Video
+        ref={videoRef}
+        source={videoSource}
+        style={StyleSheet.absoluteFill}
+        resizeMode={ResizeMode.CONTAIN}
+        isLooping
+        shouldPlay={isPlaying}
+        onPlaybackStatusUpdate={(status: AVPlaybackStatus) => {
+          if (status.isLoaded && onPlaybackUpdate) {
+            onPlaybackUpdate(status.positionMillis / 1000);
+          }
+        }}
+      />
     </TouchableOpacity>
   );
 }
@@ -368,12 +365,22 @@ export default function FireEventVideoScreen({ route, navigation }: Props) {
   const SAMPLE_DURATION = 6;
   const S3_DURATION = 135;
 
+  // 데모 이벤트 여부 (데모 방 소속이면 서버 API 호출 생략)
+  const isDemo = isDemoRoomId(room?.roomId);
+
   // S3 Presigned URL 비동기 로딩
   const [recordUrl, setRecordUrl] = useState<string | null>(null);
   const [urlLoading, setUrlLoading] = useState(false);
   const [urlError, setUrlError] = useState(false);
 
   useEffect(() => {
+    // 데모 이벤트면 서버에 녹화 URL 요청하지 않음
+    if (isDemo) {
+      setUrlLoading(false);
+      setUrlError(true);
+      return;
+    }
+
     let cancelled = false;
     const fetchRecordUrl = async () => {
       setUrlLoading(true);
@@ -384,7 +391,7 @@ export default function FireEventVideoScreen({ route, navigation }: Props) {
           setRecordUrl(response.recordUrl);
         }
       } catch (err) {
-        console.log('녹화 URL 조회 실패, 시뮬레이션으로 폴백:', err);
+        console.log('녹화 URL 조회 실패, 샘플 영상으로 폴백:', err);
         if (!cancelled) setUrlError(true);
       } finally {
         if (!cancelled) setUrlLoading(false);
@@ -395,24 +402,16 @@ export default function FireEventVideoScreen({ route, navigation }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [event.id]);
+  }, [event.id, isDemo]);
 
   const handleTogglePlay = useCallback(() => {
     setIsPlaying((prev) => !prev);
   }, []);
 
-  // 재생 시 경과 시간 카운트 (100ms 간격으로 탐지 박스 동기화)
-  useEffect(() => {
-    if (!isPlaying) return;
-    const interval = 100; // ms
-    const timer = setInterval(() => {
-      setElapsed((prev) => {
-        if (prev >= totalDuration) return 0;
-        return Math.round((prev + interval / 1000) * 100) / 100;
-      });
-    }, interval);
-    return () => clearInterval(timer);
-  }, [isPlaying, totalDuration]);
+  // 영상 재생 위치를 expo-av onPlaybackStatusUpdate에서 동기화
+  const handlePlaybackUpdate = useCallback((positionSec: number) => {
+    setElapsed(positionSec);
+  }, []);
 
   const formatElapsed = (sec: number): string => {
     const m = Math.floor(sec / 60);
@@ -421,9 +420,8 @@ export default function FireEventVideoScreen({ route, navigation }: Props) {
   };
 
   const cameraName = camera.cameraEdgeAlias || '카메라';
-  // expo-video 사용 가능 시: S3 URL 또는 샘플 영상 재생
-  const showS3Video = canPlayVideo && !!recordUrl && !urlError;
-  const showSampleVideo = canPlayVideo && !showS3Video && !urlLoading;
+  const showS3Video = !!recordUrl && !urlError;
+  const showSampleVideo = !showS3Video && !urlLoading;
   const totalDuration = showS3Video ? S3_DURATION : SAMPLE_DURATION;
   const progressPercent = (elapsed / totalDuration) * 100;
 
@@ -455,13 +453,19 @@ export default function FireEventVideoScreen({ route, navigation }: Props) {
             <Text style={styles.loadingText}>녹화 영상 로딩 중...</Text>
           </View>
         ) : showS3Video ? (
-          <VideoPlayer source={recordUrl!} isPlaying={isPlaying} onToggle={handleTogglePlay} />
+          <VideoPlayer
+            source={recordUrl!}
+            isPlaying={isPlaying}
+            onToggle={handleTogglePlay}
+            onPlaybackUpdate={handlePlaybackUpdate}
+          />
         ) : showSampleVideo ? (
           <>
             <VideoPlayer
               source={SAMPLE_FIRE_VIDEO}
               isPlaying={isPlaying}
               onToggle={handleTogglePlay}
+              onPlaybackUpdate={handlePlaybackUpdate}
             />
             {/* 실제 YOLO 탐지 결과 오버레이 */}
             <View style={StyleSheet.absoluteFill} pointerEvents="none">
