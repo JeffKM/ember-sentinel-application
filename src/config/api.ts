@@ -465,13 +465,20 @@ export interface RecordUrlResponse {
   recordUrl: string;
 }
 
-export const getFireEventRecordUrl = async (fireEventId: number): Promise<RecordUrlResponse> => {
-  console.log(`🎥 녹화 영상 URL 요청 - fireEventId: ${fireEventId}`);
+export const getFireEventRecordUrl = async (
+  fireEventId: number,
+  roomId?: number,
+): Promise<RecordUrlResponse> => {
+  console.log(`🎥 녹화 영상 URL 요청 - fireEventId: ${fireEventId}, roomId: ${roomId}`);
   const headers = await getAuthHeaders();
-  const response = await apiRequest<RecordUrlResponse>(`/fire-event/${fireEventId}/record`, {
-    method: 'GET',
-    headers,
-  });
+  const query = roomId ? `?roomId=${roomId}` : '';
+  const response = await apiRequest<RecordUrlResponse>(
+    `/fire-event/${fireEventId}/record${query}`,
+    {
+      method: 'GET',
+      headers,
+    },
+  );
   console.log('✅ 녹화 영상 URL 조회 완료');
   return response!;
 };

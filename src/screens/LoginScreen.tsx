@@ -159,6 +159,14 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
 
       // Google 로그인 실행
       const userInfo = await GoogleSignin.signIn();
+
+      // 사용자가 로그인을 취소한 경우
+      if ((userInfo as any)?.type === 'cancelled' || !(userInfo as any)?.data) {
+        console.log('ℹ️ 구글 로그인 취소됨');
+        setLoading(false);
+        return;
+      }
+
       console.log('✅ 구글 로그인 성공:', userInfo);
 
       // 토큰들 가져오기 (accessToken, idToken)

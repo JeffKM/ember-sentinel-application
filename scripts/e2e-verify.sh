@@ -473,7 +473,7 @@ check_recording() {
   # 8-1. 녹화 URL 조회
   print_step "녹화 영상 URL 조회 중..."
   response=$(curl -s -w "\n%{http_code}" \
-    "$API_BASE/fire-event/${fire_event_id}/record" \
+    "$API_BASE/fire-event/${fire_event_id}/record?roomId=${ROOM_ID:-1}" \
     -H "Authorization: Bearer $ACCESS_TOKEN")
 
   http_code=$(echo "$response" | tail -1)

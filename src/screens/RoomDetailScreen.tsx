@@ -460,9 +460,9 @@ export default function RoomDetailScreen({ route, navigation }: RoomDetailScreen
                   <Text style={styles.cameraSectionTitleDanger}>화재 감지 중</Text>
                 </View>
 
-                {fireDetectionCameras.map((camera) => (
+                {fireDetectionCameras.map((camera, index) => (
                   <TouchableOpacity
-                    key={camera.cameraId}
+                    key={`fire-${camera.cameraId}-${index}`}
                     style={[styles.cameraCard, styles.cameraCardError]}
                     onPress={() =>
                       navigation.navigate('FireAlertDetail', { camera, room: roomDetail! })
@@ -508,9 +508,9 @@ export default function RoomDetailScreen({ route, navigation }: RoomDetailScreen
                   <Text style={styles.cameraSectionTitleSafe}>안전</Text>
                 </View>
 
-                {safeCameras.map((camera) => (
+                {safeCameras.map((camera, index) => (
                   <TouchableOpacity
-                    key={camera.cameraId}
+                    key={`safe-${camera.cameraId}-${index}`}
                     style={styles.cameraCard}
                     onPress={() =>
                       navigation.navigate('FireEventHistory', { camera, room: roomDetail! })
