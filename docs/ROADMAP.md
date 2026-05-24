@@ -1,7 +1,7 @@
 # Ember Sentinel — 개발 로드맵
 
 > **기준 문서**: [PRD.md](./PRD.md) v1.0
-> **최종 갱신일**: 2026-05-24 <!-- v3.6 민감 정보 환경변수 분리 -->
+> **최종 갱신일**: 2026-05-24 <!-- v3.7 git history 민감정보 정리 -->
 > **목표**: 면접 시연 및 포트폴리오 활용을 위한 전체 시스템 개선 실행 계획
 
 ---
@@ -26,8 +26,8 @@
 |  14   | LiveKit CCTV 실시간 스트리밍       |    P0    |     4     | ✅ 완료 |    4/4    |
 |  15   | 프로덕션 데모 환경 구축            |    P0    |    16     | 🔄 진행 |   12/16   |
 |  16   | 모바일 앱 UI 개선                  |    P1    |     3     | ✅ 완료 |    3/3    |
-|  17   | 민감 정보 환경변수 분리            |    P0    |     7     | ✅ 완료 |    7/7    |
-|       | **합계**                           |          |  **80**   |         | **76/80** |
+|  17   | 민감 정보 환경변수 분리            |    P0    |     8     | ✅ 완료 |    8/8    |
+|       | **합계**                           |          |  **81**   |         | **77/81** |
 
 ---
 
@@ -428,6 +428,7 @@
 | T-078 | 네이티브 설정 파일 IP/키 제거     |  ✅  | `network_security_config.xml`에서 EC2 IP 제거(localhost/에뮬레이터 유지), `Info.plist`에서 IP 도메인·KAKAO_APP_KEY 값·Google/Kakao URL Schemes 제거                       |
 | T-079 | 스크립트 IP 제거                  |  ✅  | `e2e-verify.sh` API_BASE를 `${EMBER_API_BASE:-http://localhost:8080}`으로 변경                                                                                            |
 | T-080 | 문서 플레이스홀더 교체            |  ✅  | ROADMAP.md, phase15-execution-guide.md, eas-build-guide.md, CLAUDE.md, infra-cost-analysis.md에서 EC2 IP → `<YOUR_SERVER_IP>`, LiveKit URL → `<YOUR_LIVEKIT_URL>` 교체    |
+| T-081 | git history 민감정보 정리         |  ✅  | `git-filter-repo --replace-text`로 `ember-sentinel`·`edge-IoT` 2개 레포 전체 히스토리 치환 + force push. 키 로테이션은 별도 진행 예정                                     |
 
 **완료 기준**: `grep -r "<실제IP>" --include="*.ts" --include="*.json" --include="*.xml" --include="*.plist" .` → 0건, `grep -r "<실제Firebase키>" --include="*.ts" .` → 0건
 
@@ -646,3 +647,4 @@ T-079 ── T-080 (스크립트 정리 → 문서 플레이스홀더)
 | 2026-05-24 | v3.4 | LiveKit 지연 로딩 + DOMException 폴리필 — iOS 시뮬레이터에서 `livekit-client` 모듈 로드 시 `DOMException` 참조 에러로 앱 크래시하던 문제 수정. App.tsx에 DOMException 폴리필을 모듈 로드 전 설정, `useLiveKitStream.ts`와 `LiveKitVideoView.tsx`에서 livekit-client/react-native 정적 import를 `require()` 지연 로딩으로 전환, 네이티브 모듈 미사용 환경에서 graceful 폴백 처리                                                                                                                                                                                                                                                          |
 | 2026-05-24 | v3.6 | 민감 정보 환경변수 분리 — 하드코딩된 Firebase 키(API Key/Auth Domain/Project ID/App ID), Google OAuth Client ID 3개, Kakao App Key, EC2 IP, LiveKit Cloud URL을 `.env` 환경변수로 분리. `app.json` → `app.config.ts` 전환(Kakao/Google 키 `process.env.*` 동적 참조), `eas.json` env 블록 제거(EAS Secrets로 이동), `src/config/firebase.ts`·`socialLogin.ts`·`api.ts`·`useLiveKitStream.ts` 환경변수 참조로 변경, `network_security_config.xml`·`Info.plist` IP/키 제거, `scripts/e2e-verify.sh` IP 제거, 문서 5개 파일 IP/URL 플레이스홀더(`<YOUR_SERVER_IP>`/`<YOUR_LIVEKIT_URL>`) 교체. `.env.example` 플레이스홀더 템플릿 신규 생성 |
 | 2026-05-24 | v3.5 | 바운딩 박스 영상 내장 전환 — 클라이언트 측 YOLO 바운딩 박스 오버레이 제거(CCTVLiveScreen, FireEventVideoScreen), 대신 엣지 디바이스(edge-IoT)에서 `annotated_frame`(YOLO `.plot()` 결과)을 LiveKit으로 직접 전송하도록 변경하여 녹화 영상에 바운딩 박스가 포함되도록 수정. fire-sample.mp4를 YOLO best.pt로 144프레임 추론 → ffmpeg H.264 재인코딩(1.9MB)한 바운딩 박스 포함 영상으로 교체. iOS 번들 ID `com.embersentinel.app` 변경 + 카카오 SDK 연동 설정(Info.plist). 서버 녹화 영상 조회 API `@RequestBody` → `@RequestParam` 변경                                                                                                   |
+| 2026-05-24 | v3.7 | git history 민감정보 정리 — `git-filter-repo --replace-text`로 `ember-sentinel`, `edge-IoT` 2개 레포의 전체 커밋 히스토리에서 EC2 IP, LiveKit URL, Firebase Key/Project/App ID/Sender ID/Measurement ID, Google OAuth Client ID 3개, Kakao App Key를 `***REMOVED_***` 플레이스홀더로 치환. force push 완료. 키 로테이션은 별도 진행 예정                                                                                                                                                                                                                                                                                                 |
