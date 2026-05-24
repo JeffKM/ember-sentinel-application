@@ -99,36 +99,7 @@ function RecordedVideoSimulation({
   isPlaying: boolean;
   onToggle: () => void;
 }) {
-  const fireBoxAnim = useRef(new Animated.Value(0)).current;
-  const smokeBoxAnim = useRef(new Animated.Value(0)).current;
   const playIconAnim = useRef(new Animated.Value(isPlaying ? 0 : 1)).current;
-
-  // 재생 시 바운딩 박스 애니메이션
-  useEffect(() => {
-    if (!isPlaying) return;
-    const shake = Animated.loop(
-      Animated.sequence([
-        Animated.timing(fireBoxAnim, { toValue: 2, duration: 800, useNativeDriver: true }),
-        Animated.timing(fireBoxAnim, { toValue: -1, duration: 600, useNativeDriver: true }),
-        Animated.timing(fireBoxAnim, { toValue: 0, duration: 700, useNativeDriver: true }),
-      ]),
-    );
-    shake.start();
-    return () => shake.stop();
-  }, [isPlaying, fireBoxAnim]);
-
-  useEffect(() => {
-    if (!isPlaying) return;
-    const shake = Animated.loop(
-      Animated.sequence([
-        Animated.timing(smokeBoxAnim, { toValue: -1, duration: 900, useNativeDriver: true }),
-        Animated.timing(smokeBoxAnim, { toValue: 2, duration: 700, useNativeDriver: true }),
-        Animated.timing(smokeBoxAnim, { toValue: 0, duration: 800, useNativeDriver: true }),
-      ]),
-    );
-    shake.start();
-    return () => shake.stop();
-  }, [isPlaying, smokeBoxAnim]);
 
   // 재생 아이콘 페이드
   useEffect(() => {
@@ -293,32 +264,7 @@ function RecordedVideoSimulation({
       <View style={rec.ceilingSmoke2} />
       <View style={rec.ceilingSmoke3} />
 
-      {/* ── 3층: YOLO 바운딩 박스 (재생 중에만) ── */}
-      {isPlaying && (
-        <>
-          <Animated.View
-            style={[rec.yoloBox, rec.yoloFire, { transform: [{ translateY: fireBoxAnim }] }]}
-          >
-            <View style={rec.yoloLabel}>
-              <Text style={rec.yoloLabelText}>fire 0.91</Text>
-            </View>
-            <View style={[rec.yoloCorner, rec.cornerTL]} />
-            <View style={[rec.yoloCorner, rec.cornerTR]} />
-            <View style={[rec.yoloCorner, rec.cornerBL]} />
-            <View style={[rec.yoloCorner, rec.cornerBR]} />
-          </Animated.View>
-
-          <Animated.View
-            style={[rec.yoloBox, rec.yoloSmoke, { transform: [{ translateX: smokeBoxAnim }] }]}
-          >
-            <View style={[rec.yoloLabel, rec.yoloSmokeLabel]}>
-              <Text style={rec.yoloLabelText}>smoke 0.83</Text>
-            </View>
-          </Animated.View>
-        </>
-      )}
-
-      {/* ── 4층: HUD 오버레이 ── */}
+      {/* ── 3층: HUD 오버레이 ── */}
       {/* 상단 좌측: REC + 날짜 */}
       <View style={rec.topLeft}>
         <View style={rec.recBadge}>
@@ -467,7 +413,7 @@ export default function FireEventVideoScreen({ route, navigation }: Props) {
               onToggle={handleTogglePlay}
               onPlaybackUpdate={handlePlaybackUpdate}
             />
-            {/* 실제 YOLO 탐지 결과 오버레이 */}
+            {/* HUD 오버레이 (바운딩 박스 제거 — 실제 영상 위에는 덧그리지 않음) */}
             <View style={StyleSheet.absoluteFill} pointerEvents="none">
               {/* HUD: REC + 날짜 */}
               <View style={rec.topLeft}>
@@ -480,49 +426,6 @@ export default function FireEventVideoScreen({ route, navigation }: Props) {
               <View style={rec.topRight}>
                 <Text style={rec.camName}>{cameraName}</Text>
               </View>
-              {/* YOLO 탐지 박스 — elapsed에 맞는 실제 좌표 */}
-              {isPlaying &&
-                getDetectionsAtTime(elapsed).map((box, i) => {
-                  const color = box.class === 'fire' ? '#FF3B30' : '#FFD60A';
-                  return (
-                    <View
-                      key={`${box.class}-${i}`}
-                      style={{
-                        position: 'absolute',
-                        left: `${box.x1 * 100}%`,
-                        top: `${box.y1 * 100}%`,
-                        width: `${(box.x2 - box.x1) * 100}%`,
-                        height: `${(box.y2 - box.y1) * 100}%`,
-                        borderWidth: 2,
-                        borderColor: color,
-                        borderRadius: 2,
-                      }}
-                    >
-                      <View
-                        style={{
-                          position: 'absolute',
-                          top: -20,
-                          left: -2,
-                          backgroundColor: color,
-                          paddingHorizontal: 6,
-                          paddingVertical: 2,
-                          borderRadius: 2,
-                        }}
-                      >
-                        <Text
-                          style={{
-                            color: '#FFF',
-                            fontSize: 10,
-                            fontWeight: 'bold',
-                            fontFamily: 'monospace',
-                          }}
-                        >
-                          {box.class} {box.confidence.toFixed(2)}
-                        </Text>
-                      </View>
-                    </View>
-                  );
-                })}
               {/* FIRE DETECTED 배지 */}
               {isPlaying && getDetectionsAtTime(elapsed).some((b) => b.class === 'fire') && (
                 <View style={rec.bottomBar}>
@@ -872,55 +775,6 @@ const rec = StyleSheet.create({
     backgroundColor: 'rgba(150, 150, 150, 0.05)',
     borderRadius: 15,
   },
-  // ── YOLO 바운딩 박스 ──
-  yoloBox: {
-    position: 'absolute',
-    borderWidth: 2,
-    borderRadius: 2,
-  },
-  yoloFire: {
-    bottom: '30%',
-    left: '25%',
-    width: 120,
-    height: 100,
-    borderColor: '#FF3B30',
-  },
-  yoloSmoke: {
-    top: '12%',
-    left: '15%',
-    width: 200,
-    height: 130,
-    borderColor: '#FFD60A',
-    borderStyle: 'dashed',
-  },
-  yoloLabel: {
-    position: 'absolute',
-    top: -22,
-    left: -2,
-    backgroundColor: '#FF3B30',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 2,
-  },
-  yoloSmokeLabel: {
-    backgroundColor: 'rgba(200, 170, 0, 0.9)',
-  },
-  yoloLabelText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: 'bold',
-    fontFamily: 'monospace',
-  },
-  yoloCorner: {
-    position: 'absolute',
-    width: 12,
-    height: 12,
-    borderColor: '#FF3B30',
-  },
-  cornerTL: { top: -1, left: -1, borderTopWidth: 3, borderLeftWidth: 3 },
-  cornerTR: { top: -1, right: -1, borderTopWidth: 3, borderRightWidth: 3 },
-  cornerBL: { bottom: -1, left: -1, borderBottomWidth: 3, borderLeftWidth: 3 },
-  cornerBR: { bottom: -1, right: -1, borderBottomWidth: 3, borderRightWidth: 3 },
   // ── HUD ──
   topLeft: {
     position: 'absolute',

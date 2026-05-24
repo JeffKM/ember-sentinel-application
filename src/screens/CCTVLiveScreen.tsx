@@ -96,50 +96,8 @@ function DemoVideoFallback({
         }}
       />
 
-      {/* YOLO 탐지 박스 오버레이 */}
+      {/* HUD 오버레이 (바운딩 박스 제거 — 실제 영상 위에는 덧그리지 않음) */}
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        {getDetectionsAtTime(elapsed).map((box, i) => {
-          const color = box.class === 'fire' ? '#FF3B30' : '#FFD60A';
-          return (
-            <View
-              key={`${box.class}-${i}`}
-              style={{
-                position: 'absolute',
-                left: `${box.x1 * 100}%`,
-                top: `${box.y1 * 100}%`,
-                width: `${(box.x2 - box.x1) * 100}%`,
-                height: `${(box.y2 - box.y1) * 100}%`,
-                borderWidth: 2,
-                borderColor: color,
-                borderRadius: 2,
-              }}
-            >
-              <View
-                style={{
-                  position: 'absolute',
-                  top: -20,
-                  left: -2,
-                  backgroundColor: color,
-                  paddingHorizontal: 6,
-                  paddingVertical: 2,
-                  borderRadius: 2,
-                }}
-              >
-                <Text
-                  style={{
-                    color: '#FFF',
-                    fontSize: 10,
-                    fontWeight: 'bold',
-                    fontFamily: 'monospace',
-                  }}
-                >
-                  {box.class} {box.confidence.toFixed(2)}
-                </Text>
-              </View>
-            </View>
-          );
-        })}
-
         {/* HUD: 상단 좌측 REC + 시간 */}
         <View style={demo.topLeft}>
           <View style={demo.recBadge}>
@@ -186,8 +144,6 @@ function CCTVSimulation({
 }) {
   const [now, setNow] = useState(new Date());
   const blinkAnim = useRef(new Animated.Value(1)).current;
-  const fireBoxAnim = useRef(new Animated.Value(0)).current;
-  const smokeBoxAnim = useRef(new Animated.Value(0)).current;
   const scanlineAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -206,32 +162,6 @@ function CCTVSimulation({
     blink.start();
     return () => blink.stop();
   }, [blinkAnim]);
-
-  // 화염 바운딩 박스 떨림
-  useEffect(() => {
-    const shake = Animated.loop(
-      Animated.sequence([
-        Animated.timing(fireBoxAnim, { toValue: 2, duration: 800, useNativeDriver: true }),
-        Animated.timing(fireBoxAnim, { toValue: -1, duration: 600, useNativeDriver: true }),
-        Animated.timing(fireBoxAnim, { toValue: 0, duration: 700, useNativeDriver: true }),
-      ]),
-    );
-    shake.start();
-    return () => shake.stop();
-  }, [fireBoxAnim]);
-
-  // 연기 바운딩 박스 떨림
-  useEffect(() => {
-    const shake = Animated.loop(
-      Animated.sequence([
-        Animated.timing(smokeBoxAnim, { toValue: -1, duration: 900, useNativeDriver: true }),
-        Animated.timing(smokeBoxAnim, { toValue: 2, duration: 700, useNativeDriver: true }),
-        Animated.timing(smokeBoxAnim, { toValue: 0, duration: 800, useNativeDriver: true }),
-      ]),
-    );
-    shake.start();
-    return () => shake.stop();
-  }, [smokeBoxAnim]);
 
   // 스캔라인
   useEffect(() => {
@@ -371,31 +301,7 @@ function CCTVSimulation({
       <View style={sim.ceilingSmoke2} />
       <View style={sim.ceilingSmoke3} />
 
-      {/* ── 3층: YOLO 바운딩 박스 ── */}
-      {/* 화염 감지 박스 */}
-      <Animated.View
-        style={[sim.yoloBox, sim.yoloFire, { transform: [{ translateY: fireBoxAnim }] }]}
-      >
-        <View style={sim.yoloLabel}>
-          <Text style={sim.yoloLabelText}>fire 0.94</Text>
-        </View>
-        {/* 박스 모서리 강조 */}
-        <View style={[sim.yoloCorner, sim.cornerTL]} />
-        <View style={[sim.yoloCorner, sim.cornerTR]} />
-        <View style={[sim.yoloCorner, sim.cornerBL]} />
-        <View style={[sim.yoloCorner, sim.cornerBR]} />
-      </Animated.View>
-
-      {/* 연기 감지 박스 */}
-      <Animated.View
-        style={[sim.yoloBox, sim.yoloSmoke, { transform: [{ translateX: smokeBoxAnim }] }]}
-      >
-        <View style={[sim.yoloLabel, sim.yoloSmokeLabel]}>
-          <Text style={sim.yoloLabelText}>smoke 0.87</Text>
-        </View>
-      </Animated.View>
-
-      {/* ── 4층: CCTV HUD 오버레이 ── */}
+      {/* ── 3층: CCTV HUD 오버레이 ── */}
       {/* 스캔라인 */}
       <Animated.View
         style={[
@@ -940,76 +846,6 @@ const sim = StyleSheet.create({
     height: 30,
     backgroundColor: 'rgba(150, 150, 150, 0.05)',
     borderRadius: 15,
-  },
-  // ── YOLO 바운딩 박스 ──
-  yoloBox: {
-    position: 'absolute',
-    borderWidth: 2,
-    borderRadius: 2,
-  },
-  yoloFire: {
-    bottom: '30%',
-    left: '25%',
-    width: 120,
-    height: 100,
-    borderColor: '#FF3B30',
-  },
-  yoloSmoke: {
-    top: '12%',
-    left: '15%',
-    width: 200,
-    height: 130,
-    borderColor: '#FFD60A',
-    borderStyle: 'dashed',
-  },
-  yoloLabel: {
-    position: 'absolute',
-    top: -22,
-    left: -2,
-    backgroundColor: '#FF3B30',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 2,
-  },
-  yoloSmokeLabel: {
-    backgroundColor: 'rgba(200, 170, 0, 0.9)',
-  },
-  yoloLabelText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: 'bold',
-    fontFamily: 'monospace',
-  },
-  // 바운딩 박스 모서리 강조
-  yoloCorner: {
-    position: 'absolute',
-    width: 12,
-    height: 12,
-    borderColor: '#FF3B30',
-  },
-  cornerTL: {
-    top: -1,
-    left: -1,
-    borderTopWidth: 3,
-    borderLeftWidth: 3,
-  },
-  cornerTR: {
-    top: -1,
-    right: -1,
-    borderTopWidth: 3,
-    borderRightWidth: 3,
-  },
-  cornerBL: {
-    bottom: -1,
-    left: -1,
-    borderBottomWidth: 3,
-    borderLeftWidth: 3,
-  },
-  cornerBR: {
-    bottom: -1,
-    right: -1,
-    borderBottomWidth: 3,
-    borderRightWidth: 3,
   },
   // ── HUD ──
   scanline: {
