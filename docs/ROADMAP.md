@@ -1,7 +1,7 @@
 # Ember Sentinel — 개발 로드맵
 
 > **기준 문서**: [PRD.md](./PRD.md) v1.0
-> **최종 갱신일**: 2026-05-24 <!-- v3.4 LiveKit 지연 로딩 + DOMException 폴리필 -->
+> **최종 갱신일**: 2026-05-24 <!-- v3.5 바운딩 박스 영상 내장 전환 -->
 > **목표**: 면접 시연 및 포트폴리오 활용을 위한 전체 시스템 개선 실행 계획
 
 ---
@@ -336,12 +336,12 @@
 
 ### 영역 1: 엣지 대체 — 노트북 웹캠 시뮬레이터 (edge-IoT 레포)
 
-|  ID   | 태스크                                        | 상태 | 비고                                                                                                                                                                 |
-| :---: | --------------------------------------------- | :--: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| T-055 | YOLO 모델 준비 및 macOS 호환 검증             |  ✅  | macOS에서 `.pt` 모델 직접 사용, LiveKit Python SDK ARM64 호환성 확인                                                                                                 |
-| T-056 | config.production.yaml 프로덕션 프로필 추가   |  ✅  | EC2 API URL + LiveKit Cloud URL + 디바이스 UUID/API Key 반영 완료                                                                                                    |
-| T-057 | macOS 웹캠 시뮬레이터 실행 가이드 작성        |  ✅  | `docs/macos-simulator-guide.md` — 환경 설정, 실행법, E2E 검증 결과 포함                                                                                              |
-| T-058 | 샘플 화재 영상 준비 (웹캠 없이도 테스트 가능) |  ✅  | fire-sample.mp4 (6초, 1.2MB) 앱 번들링, YOLO best.pt로 72프레임 탐지 데이터 추출(fire-sample-detections.json), 영상 재생 시 실제 탐지 좌표 기반 바운딩 박스 오버레이 |
+|  ID   | 태스크                                        | 상태 | 비고                                                                                                                                            |
+| :---: | --------------------------------------------- | :--: | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| T-055 | YOLO 모델 준비 및 macOS 호환 검증             |  ✅  | macOS에서 `.pt` 모델 직접 사용, LiveKit Python SDK ARM64 호환성 확인                                                                            |
+| T-056 | config.production.yaml 프로덕션 프로필 추가   |  ✅  | EC2 API URL + LiveKit Cloud URL + 디바이스 UUID/API Key 반영 완료                                                                               |
+| T-057 | macOS 웹캠 시뮬레이터 실행 가이드 작성        |  ✅  | `docs/macos-simulator-guide.md` — 환경 설정, 실행법, E2E 검증 결과 포함                                                                         |
+| T-058 | 샘플 화재 영상 준비 (웹캠 없이도 테스트 가능) |  ✅  | fire-sample.mp4 (6초, 1.9MB) YOLO best.pt로 144프레임 추론 → 바운딩 박스 내장 영상으로 교체 (ffmpeg H.264 재인코딩), 클라이언트 오버레이 불필요 |
 
 ### 영역 2: EAS Build 실기기 배포 (ember-sentinel 레포)
 
@@ -587,3 +587,4 @@ T-072 ── T-073 (서브컴포넌트 → 화면 리팩터링)
 | 2026-05-24 | v3.2 | CCTVLiveScreen 데모 영상 폴백 — 데모 방(isDemoRoomId)에서 CCTV 실시간 영상 화면 진입 시 기존 CCTVSimulation(애니메이션 시뮬레이션) 대신 fire-sample.mp4 + YOLO 탐지 박스 오버레이를 자동 재생하는 DemoVideoFallback 컴포넌트 추가. expo-av Video(ResizeMode.COVER, isLooping, shouldPlay) + 프레임별 YOLO 바운딩 박스 + REC/카메라명/FIRE DETECTED HUD 오버레이. 비데모 방은 기존 CCTVSimulation 유지                                                                                                                                                                             |
 | 2026-05-24 | v3.3 | Phase 16 추가 (T-071~T-073) — 모바일 앱 UI 개선: FireLocationScreen 건물 평면도 버그 3건 수정(hasFire 전체 방 비교, 상단 행 화재 스타일, 지하층 파싱) + 전면 리팩터링. floorUtils.ts(parseFloor 정규식 기반 B1F/5F 파싱, generateFloorList B1~12층, generateRoomsForFloor 12개 방+크기 차별화), FloorSelector(가로 스크롤+화재층 인디케이터), RoomCell(Animated 펄스+flex 비율+위험도 바+카메라 태그), FloorPlanView(외벽#8B7355+계단실+E/V+비상구), EvacuationOverlay(대피 방향+범례), demoData.ts getDemoRoomsForFloor 헬퍼 추가. 7개 파일 생성/수정, TypeScript 에러 0         |
 | 2026-05-24 | v3.4 | LiveKit 지연 로딩 + DOMException 폴리필 — iOS 시뮬레이터에서 `livekit-client` 모듈 로드 시 `DOMException` 참조 에러로 앱 크래시하던 문제 수정. App.tsx에 DOMException 폴리필을 모듈 로드 전 설정, `useLiveKitStream.ts`와 `LiveKitVideoView.tsx`에서 livekit-client/react-native 정적 import를 `require()` 지연 로딩으로 전환, 네이티브 모듈 미사용 환경에서 graceful 폴백 처리                                                                                                                                                                                                   |
+| 2026-05-24 | v3.5 | 바운딩 박스 영상 내장 전환 — 클라이언트 측 YOLO 바운딩 박스 오버레이 제거(CCTVLiveScreen, FireEventVideoScreen), 대신 엣지 디바이스(edge-IoT)에서 `annotated_frame`(YOLO `.plot()` 결과)을 LiveKit으로 직접 전송하도록 변경하여 녹화 영상에 바운딩 박스가 포함되도록 수정. fire-sample.mp4를 YOLO best.pt로 144프레임 추론 → ffmpeg H.264 재인코딩(1.9MB)한 바운딩 박스 포함 영상으로 교체. iOS 번들 ID `com.embersentinel.app` 변경 + 카카오 SDK 연동 설정(Info.plist). 서버 녹화 영상 조회 API `@RequestBody` → `@RequestParam` 변경                                            |
