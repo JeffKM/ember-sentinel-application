@@ -27,17 +27,44 @@ try {
 
 const canPlayVideo = !!(ExpoVideoView && useVideoPlayer);
 
-// S3 Presigned URL 영상 재생 컴포넌트
-function S3VideoPlayer({
-  url,
+// 번들된 샘플 화재 영상 + YOLO 탐지 데이터
+const SAMPLE_FIRE_VIDEO = require('../../assets/videos/fire-sample.mp4');
+const SAMPLE_DETECTIONS = require('../../assets/videos/fire-sample-detections.json');
+
+type DetectionBox = {
+  class: string;
+  confidence: number;
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+};
+type DetectionFrame = { time: number; boxes: DetectionBox[] };
+
+// 현재 시간에 가장 가까운 탐지 프레임 반환
+function getDetectionsAtTime(time: number): DetectionBox[] {
+  const frames: DetectionFrame[] = SAMPLE_DETECTIONS.detections;
+  if (!frames.length) return [];
+  let closest = frames[0];
+  for (const f of frames) {
+    if (Math.abs(f.time - time) < Math.abs(closest.time - time)) {
+      closest = f;
+    }
+  }
+  return closest.boxes;
+}
+
+// 영상 재생 컴포넌트 (S3 URL 또는 로컬 에셋)
+function VideoPlayer({
+  source,
   isPlaying,
   onToggle,
 }: {
-  url: string;
+  source: string | number; // URL string 또는 require() 에셋
   isPlaying: boolean;
   onToggle: () => void;
 }) {
-  const player = useVideoPlayer!(url, (p: any) => {
+  const player = useVideoPlayer!(source, (p: any) => {
     p.loop = true;
   });
 
@@ -338,7 +365,8 @@ export default function FireEventVideoScreen({ route, navigation }: Props) {
   const { event, camera, room } = route.params;
   const [isPlaying, setIsPlaying] = useState(false);
   const [elapsed, setElapsed] = useState(0);
-  const totalDuration = 135; // 2:15
+  const SAMPLE_DURATION = 6;
+  const S3_DURATION = 135;
 
   // S3 Presigned URL 비동기 로딩
   const [recordUrl, setRecordUrl] = useState<string | null>(null);
@@ -351,7 +379,7 @@ export default function FireEventVideoScreen({ route, navigation }: Props) {
       setUrlLoading(true);
       setUrlError(false);
       try {
-        const response = await getFireEventRecordUrl(event.id);
+        const response = await getFireEventRecordUrl(event.id, room?.roomId);
         if (!cancelled && response?.recordUrl) {
           setRecordUrl(response.recordUrl);
         }
@@ -373,27 +401,30 @@ export default function FireEventVideoScreen({ route, navigation }: Props) {
     setIsPlaying((prev) => !prev);
   }, []);
 
-  // 재생 시 경과 시간 카운트
+  // 재생 시 경과 시간 카운트 (100ms 간격으로 탐지 박스 동기화)
   useEffect(() => {
     if (!isPlaying) return;
+    const interval = 100; // ms
     const timer = setInterval(() => {
       setElapsed((prev) => {
         if (prev >= totalDuration) return 0;
-        return prev + 1;
+        return Math.round((prev + interval / 1000) * 100) / 100;
       });
-    }, 1000);
+    }, interval);
     return () => clearInterval(timer);
-  }, [isPlaying]);
+  }, [isPlaying, totalDuration]);
 
   const formatElapsed = (sec: number): string => {
     const m = Math.floor(sec / 60);
-    const s = sec % 60;
+    const s = Math.floor(sec % 60);
     return `${m}:${String(s).padStart(2, '0')}`;
   };
 
   const cameraName = camera.cameraEdgeAlias || '카메라';
-  // S3 URL이 있고 expo-video 사용 가능하면 S3 영상 재생
+  // expo-video 사용 가능 시: S3 URL 또는 샘플 영상 재생
   const showS3Video = canPlayVideo && !!recordUrl && !urlError;
+  const showSampleVideo = canPlayVideo && !showS3Video && !urlLoading;
+  const totalDuration = showS3Video ? S3_DURATION : SAMPLE_DURATION;
   const progressPercent = (elapsed / totalDuration) * 100;
 
   return (
@@ -424,7 +455,80 @@ export default function FireEventVideoScreen({ route, navigation }: Props) {
             <Text style={styles.loadingText}>녹화 영상 로딩 중...</Text>
           </View>
         ) : showS3Video ? (
-          <S3VideoPlayer url={recordUrl!} isPlaying={isPlaying} onToggle={handleTogglePlay} />
+          <VideoPlayer source={recordUrl!} isPlaying={isPlaying} onToggle={handleTogglePlay} />
+        ) : showSampleVideo ? (
+          <>
+            <VideoPlayer
+              source={SAMPLE_FIRE_VIDEO}
+              isPlaying={isPlaying}
+              onToggle={handleTogglePlay}
+            />
+            {/* 실제 YOLO 탐지 결과 오버레이 */}
+            <View style={StyleSheet.absoluteFill} pointerEvents="none">
+              {/* HUD: REC + 날짜 */}
+              <View style={rec.topLeft}>
+                <View style={rec.recBadge}>
+                  <Text style={rec.recIcon}>⏺</Text>
+                  <Text style={rec.recText}>REC</Text>
+                </View>
+                <Text style={rec.timestamp}>{event.date}</Text>
+              </View>
+              <View style={rec.topRight}>
+                <Text style={rec.camName}>{cameraName}</Text>
+              </View>
+              {/* YOLO 탐지 박스 — elapsed에 맞는 실제 좌표 */}
+              {isPlaying &&
+                getDetectionsAtTime(elapsed).map((box, i) => {
+                  const color = box.class === 'fire' ? '#FF3B30' : '#FFD60A';
+                  return (
+                    <View
+                      key={`${box.class}-${i}`}
+                      style={{
+                        position: 'absolute',
+                        left: `${box.x1 * 100}%`,
+                        top: `${box.y1 * 100}%`,
+                        width: `${(box.x2 - box.x1) * 100}%`,
+                        height: `${(box.y2 - box.y1) * 100}%`,
+                        borderWidth: 2,
+                        borderColor: color,
+                        borderRadius: 2,
+                      }}
+                    >
+                      <View
+                        style={{
+                          position: 'absolute',
+                          top: -20,
+                          left: -2,
+                          backgroundColor: color,
+                          paddingHorizontal: 6,
+                          paddingVertical: 2,
+                          borderRadius: 2,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            color: '#FFF',
+                            fontSize: 10,
+                            fontWeight: 'bold',
+                            fontFamily: 'monospace',
+                          }}
+                        >
+                          {box.class} {box.confidence.toFixed(2)}
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                })}
+              {/* FIRE DETECTED 배지 */}
+              {isPlaying && getDetectionsAtTime(elapsed).some((b) => b.class === 'fire') && (
+                <View style={rec.bottomBar}>
+                  <View style={rec.detectBadge}>
+                    <Text style={rec.detectText}>FIRE DETECTED</Text>
+                  </View>
+                </View>
+              )}
+            </View>
+          </>
         ) : (
           <RecordedVideoSimulation
             cameraName={cameraName}
@@ -443,7 +547,7 @@ export default function FireEventVideoScreen({ route, navigation }: Props) {
             <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
             <View style={[styles.progressThumb, { left: `${Math.min(progressPercent, 97)}%` }]} />
           </View>
-          <Text style={styles.timeText}>2:15</Text>
+          <Text style={styles.timeText}>{formatElapsed(totalDuration)}</Text>
         </View>
 
         <TouchableOpacity style={styles.playButton} onPress={handleTogglePlay}>
