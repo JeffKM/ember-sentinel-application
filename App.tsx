@@ -1,5 +1,19 @@
-import { registerGlobals } from '@livekit/react-native';
-registerGlobals();
+// LiveKit 네이티브 모듈 등록 (시뮬레이터/Expo Go에서는 건너뜀)
+// DOMException 폴리필 — livekit-client 내부에서 참조하므로 모듈 로드 전 필요
+if (typeof globalThis.DOMException === 'undefined') {
+  globalThis.DOMException = class DOMException extends Error {
+    constructor(message?: string, name?: string) {
+      super(message);
+      this.name = name || 'DOMException';
+    }
+  } as typeof globalThis.DOMException;
+}
+try {
+  const { registerGlobals } = require('@livekit/react-native');
+  registerGlobals();
+} catch {
+  // 네이티브 빌드가 아닌 환경에서는 LiveKit 초기화 생략
+}
 
 import React from 'react';
 import { View, StyleSheet } from 'react-native';

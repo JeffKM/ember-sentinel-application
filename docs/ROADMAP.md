@@ -1,7 +1,7 @@
 # Ember Sentinel — 개발 로드맵
 
 > **기준 문서**: [PRD.md](./PRD.md) v1.0
-> **최종 갱신일**: 2026-05-24 <!-- v3.3 FireLocationScreen 건물 평면도 개선 -->
+> **최종 갱신일**: 2026-05-24 <!-- v3.4 LiveKit 지연 로딩 + DOMException 폴리필 -->
 > **목표**: 면접 시연 및 포트폴리오 활용을 위한 전체 시스템 개선 실행 계획
 
 ---
@@ -586,3 +586,4 @@ T-072 ── T-073 (서브컴포넌트 → 화면 리팩터링)
 | 2026-05-24 | v3.1 | 데모 데이터 인하대 테마 + expo-av 영상 재생 — demoData.ts 전면 개편(인하대 캠퍼스 건물 5개: 하이테크센터/정석학술정보관/2호관/60주년기념관/학생회관, 방 7개, 카메라 14대, 멤버 28명@inha.edu, 화재 이벤트 12건), 서버 데이터 부족 시 "데모 데이터를 채워볼까요?" 프롬프트 추가(HomeScreen), 데모 방 자동 판별(isDemoRoomId → RoomDetailScreen). expo-video → expo-av 전환(iOS 시뮬레이터에서 로컬 require() 에셋 재생 불가 해결), expo-av Video 컴포넌트 + onPlaybackStatusUpdate로 YOLO 탐지 박스 정확한 프레임 동기화, 데모 이벤트 불필요한 서버 API 호출(NOT_FOUND_BY_ID) 차단 |
 | 2026-05-24 | v3.2 | CCTVLiveScreen 데모 영상 폴백 — 데모 방(isDemoRoomId)에서 CCTV 실시간 영상 화면 진입 시 기존 CCTVSimulation(애니메이션 시뮬레이션) 대신 fire-sample.mp4 + YOLO 탐지 박스 오버레이를 자동 재생하는 DemoVideoFallback 컴포넌트 추가. expo-av Video(ResizeMode.COVER, isLooping, shouldPlay) + 프레임별 YOLO 바운딩 박스 + REC/카메라명/FIRE DETECTED HUD 오버레이. 비데모 방은 기존 CCTVSimulation 유지                                                                                                                                                                             |
 | 2026-05-24 | v3.3 | Phase 16 추가 (T-071~T-073) — 모바일 앱 UI 개선: FireLocationScreen 건물 평면도 버그 3건 수정(hasFire 전체 방 비교, 상단 행 화재 스타일, 지하층 파싱) + 전면 리팩터링. floorUtils.ts(parseFloor 정규식 기반 B1F/5F 파싱, generateFloorList B1~12층, generateRoomsForFloor 12개 방+크기 차별화), FloorSelector(가로 스크롤+화재층 인디케이터), RoomCell(Animated 펄스+flex 비율+위험도 바+카메라 태그), FloorPlanView(외벽#8B7355+계단실+E/V+비상구), EvacuationOverlay(대피 방향+범례), demoData.ts getDemoRoomsForFloor 헬퍼 추가. 7개 파일 생성/수정, TypeScript 에러 0         |
+| 2026-05-24 | v3.4 | LiveKit 지연 로딩 + DOMException 폴리필 — iOS 시뮬레이터에서 `livekit-client` 모듈 로드 시 `DOMException` 참조 에러로 앱 크래시하던 문제 수정. App.tsx에 DOMException 폴리필을 모듈 로드 전 설정, `useLiveKitStream.ts`와 `LiveKitVideoView.tsx`에서 livekit-client/react-native 정적 import를 `require()` 지연 로딩으로 전환, 네이티브 모듈 미사용 환경에서 graceful 폴백 처리                                                                                                                                                                                                   |

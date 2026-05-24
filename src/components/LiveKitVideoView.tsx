@@ -1,20 +1,39 @@
 import React from 'react';
-import { StyleSheet } from 'react-native';
-import { VideoView } from '@livekit/react-native';
-import type { VideoTrack } from 'livekit-client';
+import { View, Text, StyleSheet } from 'react-native';
 
 interface LiveKitVideoViewProps {
-  videoTrack: VideoTrack;
+  videoTrack: any;
 }
 
-// LiveKit VideoView를 래핑하는 컴포넌트
+// LiveKit VideoView를 래핑하는 컴포넌트 (네이티브 모듈 지연 로딩)
 export default function LiveKitVideoView({ videoTrack }: LiveKitVideoViewProps) {
-  return (
-    <VideoView
-      videoTrack={videoTrack}
-      style={StyleSheet.absoluteFill as any}
-      objectFit="cover"
-      zOrder={0}
-    />
-  );
+  try {
+    const { VideoView } = require('@livekit/react-native');
+    return (
+      <VideoView
+        videoTrack={videoTrack}
+        style={StyleSheet.absoluteFill as any}
+        objectFit="cover"
+        zOrder={0}
+      />
+    );
+  } catch {
+    return (
+      <View style={[StyleSheet.absoluteFill, styles.fallback]}>
+        <Text style={styles.fallbackText}>LiveKit 네이티브 모듈을 사용할 수 없습니다</Text>
+      </View>
+    );
+  }
 }
+
+const styles = StyleSheet.create({
+  fallback: {
+    backgroundColor: '#1a1a2e',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fallbackText: {
+    color: '#999',
+    fontSize: 14,
+  },
+});

@@ -1,12 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import {
-  Room,
-  RoomEvent,
-  ConnectionState,
-  Track,
-  type VideoTrack as LKVideoTrack,
-} from 'livekit-client';
-import { AudioSession } from '@livekit/react-native';
 import { getStreamSubscribeToken } from '../config/api';
 
 // LiveKit Cloud URL (토큰 응답에 url이 없을 때 폴백)
@@ -25,19 +17,37 @@ export type StreamConnectionState =
 
 interface UseLiveKitStreamResult {
   connectionState: StreamConnectionState;
-  videoTrack: LKVideoTrack | null;
+  videoTrack: any | null;
   error: string | null;
   retry: () => void;
 }
 
 const MAX_RETRIES = 3;
 
+// LiveKit 모듈 지연 로딩 헬퍼
+function getLiveKitModules() {
+  try {
+    const lkClient = require('livekit-client');
+    const lkReactNative = require('@livekit/react-native');
+    return {
+      Room: lkClient.Room,
+      RoomEvent: lkClient.RoomEvent,
+      ConnectionState: lkClient.ConnectionState,
+      Track: lkClient.Track,
+      AudioSession: lkReactNative.AudioSession,
+      available: true,
+    };
+  } catch {
+    return { available: false } as any;
+  }
+}
+
 export function useLiveKitStream(fireEventId: number | null): UseLiveKitStreamResult {
   const [connectionState, setConnectionState] = useState<StreamConnectionState>('idle');
-  const [videoTrack, setVideoTrack] = useState<LKVideoTrack | null>(null);
+  const [videoTrack, setVideoTrack] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const roomRef = useRef<Room | null>(null);
+  const roomRef = useRef<any | null>(null);
   const retryCountRef = useRef(0);
   const mountedRef = useRef(true);
 
@@ -48,7 +58,10 @@ export function useLiveKitStream(fireEventId: number | null): UseLiveKitStreamRe
       roomRef.current = null;
     }
     try {
-      await AudioSession.stopAudioSession();
+      const lk = getLiveKitModules();
+      if (lk.available) {
+        await lk.AudioSession.stopAudioSession();
+      }
     } catch {
       // 오디오 세션 정지 실패 무시
     }
@@ -56,6 +69,13 @@ export function useLiveKitStream(fireEventId: number | null): UseLiveKitStreamRe
 
   const connect = useCallback(async () => {
     if (!fireEventId || !mountedRef.current) return;
+
+    const lk = getLiveKitModules();
+    if (!lk.available) {
+      setError('LiveKit 네이티브 모듈을 사용할 수 없습니다');
+      setConnectionState('error');
+      return;
+    }
 
     // 기존 연결 정리
     await cleanup();
@@ -70,45 +90,45 @@ export function useLiveKitStream(fireEventId: number | null): UseLiveKitStreamRe
       if (!mountedRef.current) return;
 
       // 2. 오디오 세션 시작 (미디어 모드)
-      await AudioSession.startAudioSession();
+      await lk.AudioSession.startAudioSession();
 
       // 3. Room 생성
       setConnectionState('connecting');
-      const room = new Room({
+      const room = new lk.Room({
         adaptiveStream: true,
         dynacast: true,
       });
       roomRef.current = room;
 
       // 이벤트 리스너 등록
-      room.on(RoomEvent.ConnectionStateChanged, (state: ConnectionState) => {
+      room.on(lk.RoomEvent.ConnectionStateChanged, (state: any) => {
         if (!mountedRef.current) return;
         switch (state) {
-          case ConnectionState.Connected:
+          case lk.ConnectionState.Connected:
             setConnectionState('connected');
             retryCountRef.current = 0;
             break;
-          case ConnectionState.Reconnecting:
+          case lk.ConnectionState.Reconnecting:
             setConnectionState('reconnecting');
             break;
-          case ConnectionState.Disconnected:
+          case lk.ConnectionState.Disconnected:
             setConnectionState('disconnected');
             setVideoTrack(null);
             break;
         }
       });
 
-      room.on(RoomEvent.TrackSubscribed, (track) => {
+      room.on(lk.RoomEvent.TrackSubscribed, (track: any) => {
         if (!mountedRef.current) return;
-        if (track.kind === Track.Kind.Video) {
-          setVideoTrack(track as LKVideoTrack);
+        if (track.kind === lk.Track.Kind.Video) {
+          setVideoTrack(track);
           setConnectionState('streaming');
         }
       });
 
-      room.on(RoomEvent.TrackUnsubscribed, (track) => {
+      room.on(lk.RoomEvent.TrackUnsubscribed, (track: any) => {
         if (!mountedRef.current) return;
-        if (track.kind === Track.Kind.Video) {
+        if (track.kind === lk.Track.Kind.Video) {
           setVideoTrack(null);
           setConnectionState('connected');
         }
@@ -123,14 +143,14 @@ export function useLiveKitStream(fireEventId: number | null): UseLiveKitStreamRe
       }
 
       // 이미 퍼블리시 중인 트랙이 있으면 구독
-      room.remoteParticipants.forEach((participant) => {
-        participant.trackPublications.forEach((publication) => {
+      room.remoteParticipants.forEach((participant: any) => {
+        participant.trackPublications.forEach((publication: any) => {
           if (
-            publication.kind === Track.Kind.Video &&
+            publication.kind === lk.Track.Kind.Video &&
             publication.isSubscribed &&
             publication.track
           ) {
-            setVideoTrack(publication.track as LKVideoTrack);
+            setVideoTrack(publication.track);
             setConnectionState('streaming');
           }
         });
