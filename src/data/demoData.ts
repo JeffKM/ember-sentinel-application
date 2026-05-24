@@ -609,6 +609,29 @@ export function getDemoFireEvents(cameraId?: number): FireEvent[] {
   return filtered.length > 0 ? filtered : DEMO_FIRE_EVENTS;
 }
 
+/** 특정 층의 데모 방/카메라 정보 반환 (평면도용) */
+export function getDemoRoomsForFloor(floor: string): {
+  cameraCounts: Record<string, number>;
+  fireRooms: string[];
+} {
+  const cameraCounts: Record<string, number> = {};
+  const fireRooms: string[] = [];
+
+  // 모든 방을 순회하며 해당 층의 카메라/화재 정보 수집
+  for (const room of DEMO_ROOMS) {
+    if (room.floor.toUpperCase() === floor.toUpperCase()) {
+      cameraCounts[room.roomNumber] = room.cameraCountPerRoom;
+      const cameras = DEMO_CAMERAS[room.roomId] || [];
+      const hasActiveFire = cameras.some((c) => c.isFireOccurring);
+      if (hasActiveFire || room.fireEventCountPerRoom > 0) {
+        fireRooms.push(room.roomNumber);
+      }
+    }
+  }
+
+  return { cameraCounts, fireRooms };
+}
+
 /** 화재 시뮬레이션용 랜덤 이벤트 생성 */
 export function simulateFireEvent(): SimulationData {
   const room = DEMO_ROOMS[Math.floor(Math.random() * DEMO_ROOMS.length)];

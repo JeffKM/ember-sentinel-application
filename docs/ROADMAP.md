@@ -1,7 +1,7 @@
 # Ember Sentinel — 개발 로드맵
 
 > **기준 문서**: [PRD.md](./PRD.md) v1.0
-> **최종 갱신일**: 2026-05-24 <!-- v3.2 CCTVLiveScreen 데모 영상 폴백 -->
+> **최종 갱신일**: 2026-05-24 <!-- v3.3 FireLocationScreen 건물 평면도 개선 -->
 > **목표**: 면접 시연 및 포트폴리오 활용을 위한 전체 시스템 개선 실행 계획
 
 ---
@@ -25,7 +25,8 @@
 |  13   | E2E 데모 흐름 보강                 |    P0    |     3     | ✅ 완료 |    3/3    |
 |  14   | LiveKit CCTV 실시간 스트리밍       |    P0    |     4     | ✅ 완료 |    4/4    |
 |  15   | 프로덕션 데모 환경 구축            |    P0    |    16     | 🔄 진행 |   12/16   |
-|       | **합계**                           |          |  **70**   |         | **66/70** |
+|  16   | 모바일 앱 UI 개선                  |    P1    |     3     | ✅ 완료 |    3/3    |
+|       | **합계**                           |          |  **73**   |         | **69/73** |
 
 ---
 
@@ -381,6 +382,34 @@
 
 ---
 
+## Phase 16: 모바일 앱 UI 개선 ✅
+
+> **우선순위**: P1 | **대상 레포**: `ember-sentinel`
+
+**목표**: FireLocationScreen 건물 평면도의 화재 위치 미표시 버그 3건 수정 + 실제 건물 느낌의 평면도 UI로 전면 개선
+
+**선행 조건**: Phase 2 (T-007) — 데모 데이터 기반
+
+|  ID   | 태스크                            | 상태 | 비고                                                                                                                                                                                                                                                            |
+| :---: | --------------------------------- | :--: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T-071 | 층/방 유틸리티 + 데모 데이터 헬퍼 |  ✅  | `floorUtils.ts` — 층 파싱(parseFloor: 'B1F'→{sortKey:-1}), B1~12층 목록 생성, 층당 12개 방 생성(모든 방 hasFire 비교), 위험도/대피방향 판별. `demoData.ts`에 `getDemoRoomsForFloor()` 헬퍼 추가                                                                 |
+| T-072 | 평면도 서브컴포넌트 4개 생성      |  ✅  | `FloorSelector.tsx`(B1~12층 가로 스크롤 + 화재층 빨간 인디케이터), `RoomCell.tsx`(크기 차별화 + 카메라 태그 + 위험도 바 + 화재 펄스 애니메이션), `FloorPlanView.tsx`(외벽/계단/E·V/비상구 View 기반 레이아웃), `EvacuationOverlay.tsx`(대피 방향 화살표 + 범례) |
+| T-073 | FireLocationScreen 전면 리팩터링  |  ✅  | 서브컴포넌트 조합 구조로 전환, useMemo 파생 데이터 최적화, 대피 경로 토글 버튼, 화재 알림 카드(감지 카메라 상세), 범례 카드. 버그 3건 수정: (1) hasFire 모든 방 비교, (2) 상단 행 화재 스타일 적용, (3) 지하층 파싱 정상화                                      |
+
+**완료 기준**: 데모 모드에서 501호/302호/B103호 진입 시 🔥 마커 정상 표시, B1~12층 전체 탐색 가능, 카메라/비상구/위험도 시각 확인
+
+**구현 내용**:
+
+- `src/utils/floorUtils.ts`: FloorInfo/FloorRoom/FloorLayout 타입 + parseFloor(정규식 기반) + generateFloorList(B1~12층 13개) + generateRoomsForFloor(12개 방, 크기 차별화) + getRiskColor + getEvacuationDirection
+- `src/data/demoData.ts`: getDemoRoomsForFloor(층별 카메라 수/화재 방 조회)
+- `src/components/floor-plan/FloorSelector.tsx`: useRef 자동 스크롤, 화재층 빨간 점 + 어두운 배경 인디케이터
+- `src/components/floor-plan/RoomCell.tsx`: Animated.View 펄스(0.6~1.0 opacity), flex 비율(large:1.5/normal:1/small:0.8), 위험도 컬러 바
+- `src/components/floor-plan/FloorPlanView.tsx`: 외벽(#8B7355 3px) + 내부(#E8E0D4) + 계단실/엘리베이터/복도 + 비상구 2개
+- `src/components/floor-plan/EvacuationOverlay.tsx`: 화재 위치 기반 대피 방향(left/right/both) + EXIT 화살표 + 3색 범례
+- `src/screens/FireLocationScreen.tsx`: 300줄→250줄, 인라인 로직 → 유틸/컴포넌트 분리, ScrollView 세로 스크롤
+
+---
+
 ## Phase 의존성 그래프
 
 ```mermaid
@@ -418,6 +447,10 @@ graph TD
         P15_phase["Phase 15<br/>프로덕션 데모 환경"]
     end
 
+    subgraph "P1+ — UI 개선"
+        P16_phase["Phase 16<br/>모바일 앱 UI 개선"]
+    end
+
     P1_phase --> P3_phase
     P1_phase --> P5_phase
     P1_phase --> P9_phase
@@ -430,6 +463,7 @@ graph TD
     P13_phase --> P14_phase
     P14_phase --> P15_phase
     P3_phase --> P15_phase
+    P2_phase --> P16_phase
 ```
 
 ### 태스크 수준 핵심 의존성
@@ -482,6 +516,10 @@ T-061 ──┬── T-064 (실기기 → 스트리밍 검증)
 T-064 ── T-068 (E2E 동작 → GIF 캡처)
 T-067 ── T-069 (스크린샷 → README 업데이트)
 T-068 ── T-069 (GIF → README 업데이트)
+
+T-007 ── T-071 (데모 데이터 → 층/방 유틸리티)
+T-071 ── T-072 (유틸리티 → 평면도 서브컴포넌트)
+T-072 ── T-073 (서브컴포넌트 → 화면 리팩터링)
 ```
 
 ---
@@ -547,3 +585,4 @@ T-068 ── T-069 (GIF → README 업데이트)
 | 2026-05-24 | v3.0 | 샘플 영상 YOLO 실시간 탐지 오버레이 — fire-sample.mp4(6초, 1.2MB) 앱 번들링, YOLO best.pt로 72프레임 탐지 데이터 추출(fire-sample-detections.json), FireEventVideoScreen 3단계 폴백(S3 URL → 번들 샘플+YOLO 오버레이 → 시뮬레이션), 실제 탐지 좌표 기반 바운딩 박스(fire: 빨강, smoke: 노랑) + 클래스명·신뢰도 라벨, 100ms 타이머로 프레임 동기화, 동적 프로그레스 바(S3: 2:15 / 샘플: 0:06)                                                                                                                                                                                      |
 | 2026-05-24 | v3.1 | 데모 데이터 인하대 테마 + expo-av 영상 재생 — demoData.ts 전면 개편(인하대 캠퍼스 건물 5개: 하이테크센터/정석학술정보관/2호관/60주년기념관/학생회관, 방 7개, 카메라 14대, 멤버 28명@inha.edu, 화재 이벤트 12건), 서버 데이터 부족 시 "데모 데이터를 채워볼까요?" 프롬프트 추가(HomeScreen), 데모 방 자동 판별(isDemoRoomId → RoomDetailScreen). expo-video → expo-av 전환(iOS 시뮬레이터에서 로컬 require() 에셋 재생 불가 해결), expo-av Video 컴포넌트 + onPlaybackStatusUpdate로 YOLO 탐지 박스 정확한 프레임 동기화, 데모 이벤트 불필요한 서버 API 호출(NOT_FOUND_BY_ID) 차단 |
 | 2026-05-24 | v3.2 | CCTVLiveScreen 데모 영상 폴백 — 데모 방(isDemoRoomId)에서 CCTV 실시간 영상 화면 진입 시 기존 CCTVSimulation(애니메이션 시뮬레이션) 대신 fire-sample.mp4 + YOLO 탐지 박스 오버레이를 자동 재생하는 DemoVideoFallback 컴포넌트 추가. expo-av Video(ResizeMode.COVER, isLooping, shouldPlay) + 프레임별 YOLO 바운딩 박스 + REC/카메라명/FIRE DETECTED HUD 오버레이. 비데모 방은 기존 CCTVSimulation 유지                                                                                                                                                                             |
+| 2026-05-24 | v3.3 | Phase 16 추가 (T-071~T-073) — 모바일 앱 UI 개선: FireLocationScreen 건물 평면도 버그 3건 수정(hasFire 전체 방 비교, 상단 행 화재 스타일, 지하층 파싱) + 전면 리팩터링. floorUtils.ts(parseFloor 정규식 기반 B1F/5F 파싱, generateFloorList B1~12층, generateRoomsForFloor 12개 방+크기 차별화), FloorSelector(가로 스크롤+화재층 인디케이터), RoomCell(Animated 펄스+flex 비율+위험도 바+카메라 태그), FloorPlanView(외벽#8B7355+계단실+E/V+비상구), EvacuationOverlay(대피 방향+범례), demoData.ts getDemoRoomsForFloor 헬퍼 추가. 7개 파일 생성/수정, TypeScript 에러 0         |

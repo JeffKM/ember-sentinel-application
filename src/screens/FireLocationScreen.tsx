@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,12 +10,17 @@ import {
 } from 'react-native';
 import type { StackScreenProps } from '@react-navigation/stack';
 import type { RootStackParamList } from '../types';
-
-interface FloorRoom {
-  id: string;
-  name: string;
-  hasFire: boolean;
-}
+import {
+  parseFloor,
+  generateFloorList,
+  generateRoomsForFloor,
+  getEvacuationDirection,
+} from '../utils/floorUtils';
+import type { FloorInfo } from '../utils/floorUtils';
+import { getDemoRoomsForFloor } from '../data/demoData';
+import FloorSelector from '../components/floor-plan/FloorSelector';
+import FloorPlanView from '../components/floor-plan/FloorPlanView';
+import EvacuationOverlay from '../components/floor-plan/EvacuationOverlay';
 
 type Props = StackScreenProps<RootStackParamList, 'FireLocation'>;
 
@@ -24,124 +29,143 @@ export default function FireLocationScreen({ route, navigation }: Props) {
 
   // 카메라 데이터에서 화재 층/호실 추출
   const fireFloorRaw = camera?.locationFloor || room?.floor || '3F';
-  const fireFloorNum = fireFloorRaw.replace('F', '');
   const fireRoomNumber = camera?.roomNumber || room?.roomNumber || '305';
-  const initialFloor = `${fireFloorNum}층`;
+  const fireFloorInfo = useMemo(() => parseFloor(fireFloorRaw), [fireFloorRaw]);
 
-  const [selectedFloor, setSelectedFloor] = useState(initialFloor);
+  // 층 목록 (B1~12층)
+  const floors = useMemo(() => generateFloorList(), []);
 
-  const floors = ['1층', '2층', '3층', '4층', '5층', '6층'];
+  // 현재 선택된 층
+  const [selectedFloor, setSelectedFloor] = useState<FloorInfo>(fireFloorInfo);
 
-  // 층별 호실 데이터 생성 함수
-  const getRoomsForFloor = (floor: string): FloorRoom[] => {
-    const floorNumber = floor.replace('층', '');
-    const startRoom = parseInt(floorNumber) * 100 + 1;
+  // 대피 경로 토글
+  const [showEvacuation, setShowEvacuation] = useState(false);
 
-    return [
-      { id: `${startRoom}`, name: `${startRoom}호`, hasFire: false },
-      { id: `${startRoom + 1}`, name: `${startRoom + 1}호`, hasFire: false },
-      { id: `${startRoom + 2}`, name: `${startRoom + 2}호`, hasFire: false },
-      { id: `${startRoom + 3}`, name: `${startRoom + 3}호`, hasFire: false },
-      {
-        id: `${startRoom + 4}`,
-        name: `${startRoom + 4}호`,
-        hasFire: `${startRoom + 4}` === fireRoomNumber,
-      },
-      { id: `${startRoom + 5}`, name: `${startRoom + 5}호`, hasFire: false },
-    ];
-  };
+  // 화재 발생 층 목록 (인디케이터용)
+  const fireFloors = useMemo(() => [fireFloorRaw], [fireFloorRaw]);
 
-  const rooms = getRoomsForFloor(selectedFloor);
-  const fireRoom = rooms.find((r) => r.hasFire);
+  // 선택된 층의 방 레이아웃
+  const floorLayout = useMemo(() => {
+    const demoData = getDemoRoomsForFloor(
+      selectedFloor.isBasement
+        ? `B${Math.abs(selectedFloor.sortKey)}F`
+        : `${selectedFloor.sortKey}F`,
+    );
+    return generateRoomsForFloor(selectedFloor, fireRoomNumber, demoData.cameraCounts);
+  }, [selectedFloor, fireRoomNumber]);
+
+  // 대피 방향
+  const evacuationDir = useMemo(() => {
+    const allRooms = [...floorLayout.topRooms, ...floorLayout.bottomRooms];
+    return getEvacuationDirection(fireRoomNumber, allRooms);
+  }, [floorLayout, fireRoomNumber]);
+
+  // 현재 층에 화재가 있는지
+  const isFireFloor = selectedFloor.sortKey === fireFloorInfo.sortKey;
+
+  // 헤더 부제목
+  const subtitle = isFireFloor
+    ? `${fireFloorInfo.display} ${fireRoomNumber}호 화재 발생`
+    : `${selectedFloor.display} 평면도`;
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#1a1a2e" />
 
-      {/* Header */}
+      {/* 헤더 */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.backButton}>‹</Text>
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>건물 평면도</Text>
-          <Text style={styles.headerSubtitle}>
-            {selectedFloor === initialFloor
-              ? `${initialFloor} ${fireRoomNumber}호 화재 발생`
-              : `${selectedFloor} 평면도`}
-          </Text>
+          <Text style={styles.headerSubtitle}>{subtitle}</Text>
         </View>
         <View style={{ width: 40 }} />
       </View>
 
-      {/* Floor Selector */}
+      {/* 층 선택기 */}
+      <FloorSelector
+        floors={floors}
+        selectedFloor={selectedFloor}
+        fireFloors={fireFloors}
+        onSelectFloor={setSelectedFloor}
+      />
+
+      {/* 메인 콘텐츠 */}
       <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.floorSelector}
-        contentContainerStyle={styles.floorSelectorContent}
+        style={styles.scrollArea}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
       >
-        {floors.map((floor) => (
+        {/* 평면도 */}
+        <FloorPlanView
+          layout={floorLayout}
+          floorDisplay={selectedFloor.display}
+          isBasement={selectedFloor.isBasement}
+        />
+
+        {/* 대피 경로 토글 */}
+        {isFireFloor && (
           <TouchableOpacity
-            key={floor}
-            style={[styles.floorButton, selectedFloor === floor && styles.floorButtonActive]}
-            onPress={() => setSelectedFloor(floor)}
+            style={[styles.evacuationToggle, showEvacuation && styles.evacuationToggleActive]}
+            onPress={() => setShowEvacuation((v) => !v)}
           >
-            <Text
-              style={[
-                styles.floorButtonText,
-                selectedFloor === floor && styles.floorButtonTextActive,
-              ]}
-            >
-              {floor}
+            <Text style={styles.evacuationToggleText}>
+              {showEvacuation ? '🟢 대피 경로 숨기기' : '🚨 대피 경로 보기'}
             </Text>
           </TouchableOpacity>
-        ))}
-      </ScrollView>
+        )}
 
-      {/* Building Map */}
-      <View style={styles.mapContainer}>
-        <View style={styles.floorPlan}>
-          {/* Top Row */}
-          <View style={styles.roomRow}>
-            {rooms.slice(0, 3).map((room) => (
-              <View key={room.id} style={styles.room}>
-                <Text style={styles.roomNumber}>{room.name}</Text>
-              </View>
-            ))}
-          </View>
+        {/* 대피 경로 오버레이 */}
+        {isFireFloor && <EvacuationOverlay direction={evacuationDir} visible={showEvacuation} />}
 
-          {/* Corridor Label */}
-          <View style={styles.corridor}>
-            <Text style={styles.corridorText}>복도</Text>
-          </View>
-
-          {/* Bottom Row */}
-          <View style={styles.roomRow}>
-            {rooms.slice(3, 6).map((room) => (
-              <View key={room.id} style={[styles.room, room.hasFire && styles.roomFire]}>
-                {room.hasFire && <Text style={styles.fireIcon}>🔥</Text>}
-                <Text style={[styles.roomNumber, room.hasFire && styles.roomNumberFire]}>
-                  {room.name}
-                </Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        {/* Fire Alert Card - Below floor plan */}
-        {fireRoom && (
+        {/* 화재 알림 카드 */}
+        {isFireFloor && (
           <View style={styles.fireAlertCard}>
             <View style={styles.alertBadge}>
               <Text style={styles.alertBadgeIcon}>🚨</Text>
               <Text style={styles.alertBadgeText}>화재 지점</Text>
             </View>
             <Text style={styles.fireAlertMessage}>
-              {initialFloor} {fireRoomNumber}호에서 화재가 발생했습니다.
+              {fireFloorInfo.display} {fireRoomNumber}호에서 화재가 발생했습니다.
             </Text>
+            {camera && (
+              <View style={styles.fireDetailRow}>
+                <Text style={styles.fireDetailLabel}>감지 카메라</Text>
+                <Text style={styles.fireDetailValue}>
+                  {camera.cameraEdgeAlias || `카메라 ${camera.cameraId}`}
+                </Text>
+              </View>
+            )}
           </View>
         )}
-      </View>
+
+        {/* 범례 카드 */}
+        <View style={styles.legendCard}>
+          <Text style={styles.legendTitle}>범례</Text>
+          <View style={styles.legendGrid}>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: '#E31E24' }]} />
+              <Text style={styles.legendText}>화재 발생</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <Text style={styles.legendIcon}>cam</Text>
+              <Text style={styles.legendText}>카메라 설치</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <Text style={styles.legendIcon}>🚪</Text>
+              <Text style={styles.legendText}>비상구</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={styles.legendRiskBar}>
+                <View style={styles.legendRiskFill} />
+              </View>
+              <Text style={styles.legendText}>위험도</Text>
+            </View>
+          </View>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -177,49 +201,38 @@ const styles = StyleSheet.create({
     color: '#CCCCCC',
     marginTop: 4,
   },
-  floorSelector: {
-    maxHeight: 60,
-    marginBottom: 20,
+  scrollArea: {
+    flex: 1,
   },
-  floorSelectorContent: {
+  scrollContent: {
     paddingHorizontal: 20,
-    gap: 12,
+    paddingBottom: 40,
+    alignItems: 'center',
   },
-  floorButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
+  evacuationToggle: {
+    marginTop: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
     borderRadius: 8,
     backgroundColor: '#2a2a3e',
+    borderWidth: 1,
+    borderColor: '#444',
   },
-  floorButtonActive: {
-    backgroundColor: '#FFFFFF',
+  evacuationToggleActive: {
+    backgroundColor: '#1a3a1a',
+    borderColor: '#4CAF50',
   },
-  floorButtonText: {
-    fontSize: 15,
+  evacuationToggleText: {
+    fontSize: 14,
     fontWeight: '600',
-    color: '#999999',
-  },
-  floorButtonTextActive: {
-    color: '#1a1a2e',
-  },
-  mapContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  floorPlan: {
-    backgroundColor: '#E5E5E5',
-    borderRadius: 16,
-    padding: 24,
-    width: '100%',
-    maxWidth: 400,
+    color: '#FFFFFF',
+    textAlign: 'center',
   },
   fireAlertCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 20,
-    marginTop: 20,
+    marginTop: 16,
     width: '100%',
     maxWidth: 400,
     alignItems: 'center',
@@ -228,57 +241,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-  },
-  fireAlertMessage: {
-    fontSize: 15,
-    color: '#666666',
-    textAlign: 'center',
-    marginTop: 12,
-  },
-  roomRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 12,
-  },
-  room: {
-    flex: 1,
-    aspectRatio: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: '#CCCCCC',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  roomFire: {
-    backgroundColor: '#FFE5E5',
-    borderColor: '#E31E24',
-    borderWidth: 3,
-  },
-  roomNumber: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#333333',
-  },
-  roomNumberFire: {
-    color: '#E31E24',
-    fontWeight: 'bold',
-  },
-  fireIcon: {
-    fontSize: 24,
-    marginBottom: 4,
-  },
-  corridor: {
-    backgroundColor: '#D0D0D0',
-    paddingVertical: 16,
-    alignItems: 'center',
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  corridorText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666666',
   },
   alertBadge: {
     flexDirection: 'row',
@@ -296,5 +258,80 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     color: '#FFFFFF',
+  },
+  fireAlertMessage: {
+    fontSize: 15,
+    color: '#666666',
+    textAlign: 'center',
+    marginTop: 12,
+  },
+  fireDetailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#EEE',
+  },
+  fireDetailLabel: {
+    fontSize: 13,
+    color: '#999',
+  },
+  fireDetailValue: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#333',
+  },
+  legendCard: {
+    backgroundColor: '#2a2a3e',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    width: '100%',
+    maxWidth: 400,
+  },
+  legendTitle: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#AAAAAA',
+    marginBottom: 10,
+  },
+  legendGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    minWidth: '40%',
+  },
+  legendDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  legendIcon: {
+    fontSize: 12,
+    color: '#AAAAAA',
+  },
+  legendText: {
+    fontSize: 12,
+    color: '#CCCCCC',
+  },
+  legendRiskBar: {
+    width: 24,
+    height: 4,
+    backgroundColor: '#444',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  legendRiskFill: {
+    width: '60%',
+    height: '100%',
+    backgroundColor: '#FFD700',
+    borderRadius: 2,
   },
 });
