@@ -1,6 +1,6 @@
 import type { ExpoConfig, ConfigContext } from 'expo/config';
 
-const kakaoKey = process.env.EXPO_PUBLIC_KAKAO_APP_KEY || '';
+const kakaoKey = process.env.EXPO_PUBLIC_KAKAO_APP_KEY || 'DUMMY_KAKAO_KEY';
 const googleIosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '';
 const googleAndroidClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || '';
 
