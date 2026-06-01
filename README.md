@@ -20,7 +20,7 @@
 - [시스템 아키텍처](#시스템-아키텍처)
 - [레포지토리 구성](#레포지토리-구성)
 - [기술 스택](#기술-스택)
-- [다운로드](#다운로드)
+- [다운로드 (Android APK / iOS 시뮬레이터)](#다운로드)
 - [데모 영상](#데모-영상)
 - [구동 모습](#구동-모습)
 - [시작하기](#시작하기)
@@ -190,11 +190,35 @@ graph LR
 
 ## 다운로드
 
-| 플랫폼  | 다운로드                                                                          | 비고              |
-| ------- | --------------------------------------------------------------------------------- | ----------------- |
-| Android | [**최신 APK 다운로드**](https://github.com/JeffKM/ember-sentinel/releases/latest) | Android 8.0+ 지원 |
+| 플랫폼  | 다운로드                                                                          | 비고                       |
+| ------- | --------------------------------------------------------------------------------- | -------------------------- |
+| Android | [**최신 APK 다운로드**](https://github.com/JeffKM/ember-sentinel/releases/latest) | Android 8.0+ 지원          |
+| iOS     | 개발자에게 시뮬레이터 빌드 요청                                                   | Mac + Xcode Simulator 필요 |
 
-> 설치 시 "출처를 알 수 없는 앱" 허용이 필요합니다.
+> Android: 설치 시 "출처를 알 수 없는 앱" 허용이 필요합니다.
+
+### iOS 시뮬레이터 빌드 테스트 (테스터용)
+
+Apple Developer 계정 없이 iOS 앱을 테스트하는 방법입니다.
+git clone, 환경변수 설정, pod install 없이 바로 테스트할 수 있습니다.
+
+```bash
+# 1. 개발자에게 EmberSentinel-sim.zip을 전달받은 뒤 압축 해제
+unzip EmberSentinel-sim.zip
+
+# 2. macOS 격리 속성 제거 (zip 다운로드 시 자동 부여되어 설치 차단됨)
+xattr -cr EmberSentinel.app
+
+# 3. 시뮬레이터 부팅
+open -a Simulator
+
+# 4. 앱 설치 및 실행
+xcrun simctl install booted EmberSentinel.app
+xcrun simctl launch booted com.embersentinel.app
+```
+
+> **시뮬레이터 제한사항**: FCM 푸시 알림, 카메라는 실기기 전용이라 동작하지 않습니다.
+> UI 흐름, API 호출, 소셜 로그인, 데모 모드 테스트에는 충분합니다.
 
 ---
 
@@ -323,12 +347,9 @@ npm run ios                   # expo run:ios
 > **주의**: `GoogleService-Info.plist`와 `.env` 파일은 보안상 git에 포함되지 않습니다.
 > 프로젝트 관리자에게 파일을 전달받거나, Firebase/Google/Kakao Console에서 직접 발급받으세요.
 
-### iOS 시뮬레이터 빌드 배포 (테스터용)
+### iOS 시뮬레이터 빌드 생성 (개발자용)
 
-Apple Developer 계정 없이 테스터에게 iOS 앱을 전달하는 방법입니다.
-테스터는 git clone, 환경변수 설정, pod install 없이 바로 테스트할 수 있습니다.
-
-**빌드하는 사람 (개발자)**:
+테스터에게 전달할 시뮬레이터 빌드를 생성하는 방법입니다:
 
 ```bash
 # 1. 시뮬레이터용 Release 빌드
@@ -341,25 +362,7 @@ zip -r ~/Desktop/EmberSentinel-sim.zip EmberSentinel.app
 # 3. EmberSentinel-sim.zip을 테스터에게 전달 (Slack, 카톡, 이메일 등)
 ```
 
-**테스트하는 사람 (테스터)**:
-
-```bash
-# 1. 압축 해제
-unzip EmberSentinel-sim.zip
-
-# 2. macOS 격리 속성 제거 (zip 다운로드 시 자동 부여되어 설치 차단됨)
-xattr -cr EmberSentinel.app
-
-# 3. 시뮬레이터 부팅
-open -a Simulator
-
-# 4. 앱 설치 및 실행
-xcrun simctl install booted EmberSentinel.app
-xcrun simctl launch booted com.embersentinel.app
-```
-
-> **시뮬레이터 제한사항**: FCM 푸시 알림, 카메라는 실기기 전용이라 동작하지 않습니다.
-> UI 흐름, API 호출, 소셜 로그인, 데모 모드 테스트에는 충분합니다.
+> 테스터 설치 방법은 [다운로드 > iOS 시뮬레이터 빌드 테스트](#ios-시뮬레이터-빌드-테스트-테스터용) 참조
 
 ### 플랫폼별 빌드
 
