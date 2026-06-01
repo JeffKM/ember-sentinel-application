@@ -7,14 +7,15 @@ import {
   TouchableOpacity,
   SafeAreaView,
   StatusBar,
-  Alert,
   Modal,
   TextInput,
   ActivityIndicator,
   RefreshControl,
   GestureResponderEvent,
+  Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { confirmAlert, infoAlert } from '../utils/webAlert';
 import {
   getRoomDetail,
   addUserToRoom,
@@ -97,17 +98,12 @@ export default function RoomDetailScreen({ route, navigation }: RoomDetailScreen
     } catch (error) {
       console.error('❌ Room 세부 정보 로딩 실패:', error);
 
-      Alert.alert(
+      infoAlert(
         '데이터 로딩 실패',
         '서버에서 데이터를 가져올 수 없습니다.\n오프라인 모드로 전환합니다.',
-        [
-          {
-            text: '확인',
-            onPress: () => {
-              setIsOfflineMode(true);
-            },
-          },
-        ],
+        () => {
+          setIsOfflineMode(true);
+        },
       );
     } finally {
       setIsLoading(false);
@@ -154,11 +150,10 @@ export default function RoomDetailScreen({ route, navigation }: RoomDetailScreen
 
   const handleSubmitMember = async () => {
     if (!newMember.email || !newMember.role) {
-      Alert.alert('입력 오류', '이메일과 역할을 모두 입력해주세요.');
+      infoAlert('입력 오류', '이메일과 역할을 모두 입력해주세요.');
       return;
     }
 
-    // role을 서버 형식으로 변환
     const roleMapping: Record<string, string> = {
       편집자: 'EDITOR',
       사용자: 'VIEWER',
@@ -166,7 +161,7 @@ export default function RoomDetailScreen({ route, navigation }: RoomDetailScreen
     const serverRole = roleMapping[newMember.role];
 
     if (!serverRole) {
-      Alert.alert('입력 오류', '올바른 역할을 선택해주세요.');
+      infoAlert('입력 오류', '올바른 역할을 선택해주세요.');
       return;
     }
 
@@ -176,22 +171,14 @@ export default function RoomDetailScreen({ route, navigation }: RoomDetailScreen
 
       await addUserToRoom(room.roomId, newMember.email, serverRole);
 
-      Alert.alert('인원 추가 완료', `${newMember.email}님이 추가되었습니다.`, [
-        {
-          text: '확인',
-          onPress: async () => {
-            // 모달 닫고 초기화
-            setIsAddMemberModalVisible(false);
-            setNewMember({ email: '', role: '' });
-
-            // Room 세부 정보 새로고침
-            await loadRoomDetail();
-          },
-        },
-      ]);
+      infoAlert('인원 추가 완료', `${newMember.email}님이 추가되었습니다.`, async () => {
+        setIsAddMemberModalVisible(false);
+        setNewMember({ email: '', role: '' });
+        await loadRoomDetail();
+      });
     } catch (error: any) {
       console.error('❌ Room에 사용자 추가 실패:', error);
-      Alert.alert(
+      infoAlert(
         '인원 추가 실패',
         error.message || '서버에 사용자를 추가할 수 없습니다. 다시 시도해주세요.',
       );
@@ -207,7 +194,7 @@ export default function RoomDetailScreen({ route, navigation }: RoomDetailScreen
 
   const handleSubmitCamera = async () => {
     if (!newCamera.name || !newCamera.deviceUuid) {
-      Alert.alert('입력 오류', '카메라 이름과 카메라 ID를 모두 입력해주세요.');
+      infoAlert('입력 오류', '카메라 이름과 카메라 ID를 모두 입력해주세요.');
       return;
     }
 
@@ -217,22 +204,14 @@ export default function RoomDetailScreen({ route, navigation }: RoomDetailScreen
 
       await addCameraToRoom(room.roomId, newCamera.deviceUuid, newCamera.name);
 
-      Alert.alert('카메라 추가 완료', `${newCamera.name}이(가) 추가되었습니다.`, [
-        {
-          text: '확인',
-          onPress: async () => {
-            // 모달 닫고 초기화
-            setIsAddCameraModalVisible(false);
-            setNewCamera({ name: '', deviceUuid: '' });
-
-            // Room 세부 정보 새로고침
-            await loadRoomDetail();
-          },
-        },
-      ]);
+      infoAlert('카메라 추가 완료', `${newCamera.name}이(가) 추가되었습니다.`, async () => {
+        setIsAddCameraModalVisible(false);
+        setNewCamera({ name: '', deviceUuid: '' });
+        await loadRoomDetail();
+      });
     } catch (error: any) {
       console.error('❌ Room에 카메라 추가 실패:', error);
-      Alert.alert(
+      infoAlert(
         '카메라 추가 실패',
         error.message || '서버에 카메라를 추가할 수 없습니다. 다시 시도해주세요.',
       );
@@ -247,86 +226,51 @@ export default function RoomDetailScreen({ route, navigation }: RoomDetailScreen
   };
 
   const handleDeleteResident = (resident: Member): void => {
-    Alert.alert('멤버 삭제', `${resident.nickname}님을 삭제하시겠습니까?`, [
-      { text: '취소', style: 'cancel' },
-      {
-        text: '삭제',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            console.log('🗑️ Room에서 사용자 삭제 요청...');
+    confirmAlert('멤버 삭제', `${resident.nickname}님을 삭제하시겠습니까?`, async () => {
+      try {
+        console.log('🗑️ Room에서 사용자 삭제 요청...');
 
-            await removeUserFromRoom(room.roomId, resident.userId);
+        await removeUserFromRoom(room.roomId, resident.userId);
 
-            Alert.alert('삭제 완료', `${resident.nickname}님이 삭제되었습니다.`, [
-              {
-                text: '확인',
-                onPress: async () => {
-                  // Room 세부 정보 새로고침
-                  await loadRoomDetail();
-                },
-              },
-            ]);
-          } catch (error: any) {
-            console.error('❌ Room에서 사용자 삭제 실패:', error);
-            Alert.alert(
-              '삭제 실패',
-              error.message || '서버에서 사용자를 삭제할 수 없습니다. 다시 시도해주세요.',
-            );
-          }
-        },
-      },
-    ]);
+        infoAlert('삭제 완료', `${resident.nickname}님이 삭제되었습니다.`, async () => {
+          await loadRoomDetail();
+        });
+      } catch (error: any) {
+        console.error('❌ Room에서 사용자 삭제 실패:', error);
+        infoAlert(
+          '삭제 실패',
+          error.message || '서버에서 사용자를 삭제할 수 없습니다. 다시 시도해주세요.',
+        );
+      }
+    });
   };
 
   const handleDeleteCamera = (camera: Camera): void => {
-    Alert.alert(
-      '카메라 삭제',
-      `${camera.cameraEdgeAlias || camera.cameraEdgeAlias}을(를) 삭제하시겠습니까?`,
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '삭제',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              console.log('🗑️ Room에서 카메라 삭제 요청...');
+    confirmAlert('카메라 삭제', `${camera.cameraEdgeAlias}을(를) 삭제하시겠습니까?`, async () => {
+      try {
+        console.log('🗑️ Room에서 카메라 삭제 요청...');
 
-              // cameraId를 cameraEdgeId로 사용
-              await removeCameraFromRoom(room.roomId, camera.cameraId);
+        await removeCameraFromRoom(room.roomId, camera.cameraId);
 
-              Alert.alert(
-                '삭제 완료',
-                `${camera.cameraEdgeAlias || camera.cameraEdgeAlias}이(가) 삭제되었습니다.`,
-                [
-                  {
-                    text: '확인',
-                    onPress: async () => {
-                      // Room 세부 정보 새로고침
-                      await loadRoomDetail();
-                    },
-                  },
-                ],
-              );
-            } catch (error: any) {
-              console.error('❌ Room에서 카메라 삭제 실패:', error);
-              Alert.alert(
-                '삭제 실패',
-                error.message || '서버에서 카메라를 삭제할 수 없습니다. 다시 시도해주세요.',
-              );
-            }
-          },
-        },
-      ],
-    );
+        infoAlert('삭제 완료', `${camera.cameraEdgeAlias}이(가) 삭제되었습니다.`, async () => {
+          await loadRoomDetail();
+        });
+      } catch (error: any) {
+        console.error('❌ Room에서 카메라 삭제 실패:', error);
+        infoAlert(
+          '삭제 실패',
+          error.message || '서버에서 카메라를 삭제할 수 없습니다. 다시 시도해주세요.',
+        );
+      }
+    });
   };
 
   const handleEditResident = (resident: Member) => {
-    Alert.alert('수정', `${resident.nickname}의 정보를 수정합니다.`);
+    infoAlert('수정', `${resident.nickname}의 정보를 수정합니다.`);
   };
 
   const handleEditCamera = (camera: Camera) => {
-    Alert.alert('수정', `${camera.cameraEdgeAlias}의 정보를 수정합니다.`);
+    infoAlert('수정', `${camera.cameraEdgeAlias}의 정보를 수정합니다.`);
   };
 
   return (
@@ -729,6 +673,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F5F5F5',
+    ...(Platform.OS === 'web' ? { minHeight: '100vh' as any } : {}),
   },
   header: {
     flexDirection: 'row',

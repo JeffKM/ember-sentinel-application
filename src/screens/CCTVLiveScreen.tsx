@@ -7,6 +7,8 @@ import {
   SafeAreaView,
   StatusBar,
   Animated,
+  ScrollView,
+  Platform,
 } from 'react-native';
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import type { StackScreenProps } from '@react-navigation/stack';
@@ -387,64 +389,66 @@ export default function CCTVLiveScreen({ route, navigation }: Props) {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backButton}>‹</Text>
-        </TouchableOpacity>
-        <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>CCTV 실시간 영상</Text>
-          <Text style={styles.headerSubtitle}>{locationText}</Text>
-        </View>
-        <View style={[styles.liveBadge, { backgroundColor: liveBadgeColor }]}>
-          <View style={styles.liveDot} />
-          <Text style={styles.liveText}>LIVE</Text>
-        </View>
-      </View>
-
-      {/* Video Area — 3단계 폴백 체인 */}
-      <View style={styles.videoContainer}>
-        {/* 1. LiveKit 스트리밍 성공 → 실시간 영상 */}
-        {isStreaming && videoTrack && <LiveKitVideoView videoTrack={videoTrack} />}
-
-        {/* 2. 연결 중/재연결 중 → 상태 오버레이 */}
-        {camera.fireEventId && !showSimulation && !isStreaming && (
-          <ConnectionStatusOverlay
-            connectionState={connectionState}
-            error={error}
-            onRetry={retry}
-          />
-        )}
-
-        {/* 3. 폴백 → 데모 방이면 실제 화재 영상, 아니면 CCTVSimulation */}
-        {showSimulation && isDemo && (
-          <DemoVideoFallback
-            cameraName={cameraName}
-            locationText={locationText}
-            deviceUuid={camera.deviceUuid || 'CAM-DEMO'}
-          />
-        )}
-        {showSimulation && !isDemo && (
-          <CCTVSimulation
-            cameraName={cameraName}
-            locationText={locationText}
-            deviceUuid={camera.deviceUuid || 'CAM-DEMO'}
-          />
-        )}
-      </View>
-
-      {/* Bottom Alert */}
-      <View style={styles.bottomAlert}>
-        <View style={styles.alertContent}>
-          <Text style={styles.alertIcon}>⚠️</Text>
-          <View style={styles.alertTextContainer}>
-            <Text style={styles.alertTitle}>화재 위험 감지</Text>
-            <Text style={styles.alertMessage}>
-              현재 위치에서 연기가 계속 감지되고 있습니다.{'\n'}안전한 곳으로 대피하세요.
-            </Text>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Text style={styles.backButton}>‹</Text>
+          </TouchableOpacity>
+          <View style={styles.headerContent}>
+            <Text style={styles.headerTitle}>CCTV 실시간 영상</Text>
+            <Text style={styles.headerSubtitle}>{locationText}</Text>
+          </View>
+          <View style={[styles.liveBadge, { backgroundColor: liveBadgeColor }]}>
+            <View style={styles.liveDot} />
+            <Text style={styles.liveText}>LIVE</Text>
           </View>
         </View>
-      </View>
+
+        {/* Video Area — 3단계 폴백 체인 */}
+        <View style={styles.videoContainer}>
+          {/* 1. LiveKit 스트리밍 성공 → 실시간 영상 */}
+          {isStreaming && videoTrack && <LiveKitVideoView videoTrack={videoTrack} />}
+
+          {/* 2. 연결 중/재연결 중 → 상태 오버레이 */}
+          {camera.fireEventId && !showSimulation && !isStreaming && (
+            <ConnectionStatusOverlay
+              connectionState={connectionState}
+              error={error}
+              onRetry={retry}
+            />
+          )}
+
+          {/* 3. 폴백 → 데모 방이면 실제 화재 영상, 아니면 CCTVSimulation */}
+          {showSimulation && isDemo && (
+            <DemoVideoFallback
+              cameraName={cameraName}
+              locationText={locationText}
+              deviceUuid={camera.deviceUuid || 'CAM-DEMO'}
+            />
+          )}
+          {showSimulation && !isDemo && (
+            <CCTVSimulation
+              cameraName={cameraName}
+              locationText={locationText}
+              deviceUuid={camera.deviceUuid || 'CAM-DEMO'}
+            />
+          )}
+        </View>
+
+        {/* Bottom Alert */}
+        <View style={styles.bottomAlert}>
+          <View style={styles.alertContent}>
+            <Text style={styles.alertIcon}>⚠️</Text>
+            <View style={styles.alertTextContainer}>
+              <Text style={styles.alertTitle}>화재 위험 감지</Text>
+              <Text style={styles.alertMessage}>
+                현재 위치에서 연기가 계속 감지되고 있습니다.{'\n'}안전한 곳으로 대피하세요.
+              </Text>
+            </View>
+          </View>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -999,7 +1003,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   videoContainer: {
-    flex: 1,
+    ...(Platform.OS === 'web' ? { height: 500, minHeight: 400 } : { flex: 1 }),
     backgroundColor: '#1a1a1a',
     margin: 20,
     borderRadius: 12,

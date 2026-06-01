@@ -1,7 +1,7 @@
 # Ember Sentinel — 개발 로드맵
 
 > **기준 문서**: [PRD.md](./PRD.md) v1.0
-> **최종 갱신일**: 2026-06-01 <!-- v3.9 CI 웹 번들링 수정 (Kakao 더미 키 폴백 + 빈 favicon 교체) -->
+> **최종 갱신일**: 2026-06-01 <!-- v4.2 T-085 웹 스크롤/잘림 수정 추가, Phase 18 완료 -->
 > **목표**: 면접 시연 및 포트폴리오 활용을 위한 전체 시스템 개선 실행 계획
 
 ---
@@ -27,7 +27,8 @@
 |  15   | 프로덕션 데모 환경 구축            |    P0    |    16     | 🔄 진행 |   13/16   |
 |  16   | 모바일 앱 UI 개선                  |    P1    |     3     | ✅ 완료 |    3/3    |
 |  17   | 민감 정보 환경변수 분리            |    P0    |     8     | ✅ 완료 |    8/8    |
-|       | **합계**                           |          |  **81**   |         | **78/81** |
+|  18   | 웹 빌드 및 Vercel 배포             |    P0    |     4     | ✅ 완료 |    4/4    |
+|       | **합계**                           |          |  **85**   |         | **82/85** |
 
 ---
 
@@ -455,6 +456,45 @@ eas secret:create --name EXPO_PUBLIC_LIVEKIT_URL --value "wss://<YOUR_LIVEKIT_UR
 
 ---
 
+## Phase 18: 웹 빌드 및 Vercel 배포
+
+> **우선순위**: P0 | **대상 레포**: `ember-sentinel`
+
+**목표**: 면접관이 iOS Safari에서 URL만 열어 앱을 즉시 체험할 수 있도록 웹 빌드를 만들고 Vercel에 배포. 네이티브 전용 기능은 웹에서 우아하게 비활성화하고 데모 모드로 전체 앱을 체험 가능하게 한다.
+
+**선행 조건**: Phase 2 (데모 모드), Phase 17 (환경변수 분리)
+
+> **v4.1 계획 검증 결과**: 원래 8개 태스크(T-082~T-089)에서 과잉 작업 5개를 삭제/통합하여 3개로 압축.
+>
+> - T-082~T-084 (expo-notifications 웹 호환): **삭제** — expo-notifications가 이미 웹 지원, 모든 호출이 try-catch 내부
+> - T-085 (App.tsx 웹 분기): **축소** → T-082에 통합 (`.catch(() => null)` 1줄 추가)
+> - T-088 (로컬 빌드 테스트): T-084에 통합
+
+|  ID   | 태스크                                                               | 상태 | 비고                                                                                                                                                                                                                          |
+| :---: | -------------------------------------------------------------------- | :--: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T-082 | LoginScreen 소셜 로그인 동적 require + 웹 분기 + App.tsx .catch 추가 |  ✅  | Google/Kakao 정적 import → `getNativeAuthModules()` 동적 require, 웹에서 소셜 버튼 숨김 + "웹 데모 버전" 배너, App.tsx `getLastNotificationResponseAsync().catch(() => null)`                                                 |
+| T-083 | webAlert.ts 유틸 + 핵심 Alert 웹 호환 교체                           |  ✅  | `confirmAlert()`/`infoAlert()` 유틸(웹: `window.confirm`/`alert`, 네이티브: `Alert.alert`), LoginScreen/HomeScreen/RoomDetailScreen 데모 핵심 흐름 Alert 교체                                                                 |
+| T-084 | vercel.json 생성 + 로컬 검증 + Vercel 배포                           |  ✅  | `expo export --platform web` → Vercel 정적 배포, SPA rewrites, Vercel 프로덕션 배포 완료 → https://ember-sentinel-jeffkms-projects.vercel.app                                                                                 |
+| T-085 | 웹 스크롤 차단 해제 + 화면 잘림 수정 + 데스크톱 maxWidth             |  ✅  | Expo 기본 CSS(`overflow:hidden`) 오버라이드, CCTV/영상 화면 ScrollView 래핑 + 웹 고정 높이, 데스크톱 `maxWidth:480` 중앙 정렬. 수정: App.tsx, CCTVLiveScreen, FireEventVideoScreen, LoginScreen, HomeScreen, RoomDetailScreen |
+
+**완료 기준**: iOS Safari에서 배포된 URL 접속 → 데모 모드로 로그인 → 9개 화면 전체 탐색 가능, 네이티브 빌드 회귀 없음
+
+**수정 파일 목록**:
+
+| 순서 | 파일                                   | 변경                                           | 위험도 |
+| :--: | -------------------------------------- | ---------------------------------------------- | :----: |
+|  1   | `src/screens/LoginScreen.tsx`          | 소셜 SDK 동적 require + 웹 분기 + 웹 배너      |  중간  |
+|  2   | `src/utils/webAlert.ts`                | **신규** — 웹 호환 Alert 유틸                  |  낮음  |
+|  3   | `App.tsx`                              | `getLastNotificationResponseAsync` .catch 추가 |  낮음  |
+|  4   | `src/screens/HomeScreen.tsx`           | 핵심 Alert → webAlert 교체 (삭제/로그아웃)     |  낮음  |
+|  5   | `src/screens/RoomDetailScreen.tsx`     | 핵심 Alert → webAlert 교체 (삭제 확인)         |  낮음  |
+|  6   | `vercel.json`                          | **신규** — Vercel 배포 설정                    |  낮음  |
+|  7   | `App.tsx`                              | 웹 CSS 오버라이드 + 데스크톱 maxWidth 480      |  낮음  |
+|  8   | `src/screens/CCTVLiveScreen.tsx`       | ScrollView 래핑 + videoContainer 웹 고정 높이  |  낮음  |
+|  9   | `src/screens/FireEventVideoScreen.tsx` | ScrollView 래핑 + videoContainer 웹 고정 높이  |  낮음  |
+
+---
+
 ## Phase 의존성 그래프
 
 ```mermaid
@@ -500,6 +540,10 @@ graph TD
         P17_phase["Phase 17<br/>민감 정보 환경변수 분리"]
     end
 
+    subgraph "P0++++ — 웹 배포"
+        P18_phase["Phase 18<br/>웹 빌드 및 Vercel 배포"]
+    end
+
     P1_phase --> P3_phase
     P1_phase --> P5_phase
     P1_phase --> P9_phase
@@ -514,6 +558,8 @@ graph TD
     P3_phase --> P15_phase
     P2_phase --> P16_phase
     P15_phase --> P17_phase
+    P2_phase --> P18_phase
+    P17_phase --> P18_phase
 ```
 
 ### 태스크 수준 핵심 의존성
@@ -578,6 +624,10 @@ T-075 ── T-078 (app.config.ts → 네이티브 설정 정리)
 T-076 ── T-077 (소스 코드 변경 → eas.json 정리)
 T-078 ── T-080 (네이티브 설정 → 문서 플레이스홀더)
 T-079 ── T-080 (스크립트 정리 → 문서 플레이스홀더)
+
+T-082 ── T-083 (소셜 로그인 웹 분기 → Alert 웹 호환 교체)
+T-082~T-083 ── T-084 (웹 호환 코드 → 로컬 검증 + Vercel 배포)
+T-084 ── T-085 (Vercel 배포 → 웹 스크롤/잘림 수정)
 ```
 
 ---
@@ -598,14 +648,28 @@ T-079 ── T-080 (스크립트 정리 → 문서 플레이스홀더)
 - [ ] 스트리밍 종료 → 녹화 영상 S3 재생 (T-065)
 - [ ] 아키텍처 다이어그램으로 시스템 설명 (Phase 8)
 
-### 시나리오 2: 오프라인 데모 (5분)
+### 시나리오 2: 웹 데모 — iOS Safari URL 접속 (5분) [Phase 18]
+
+- [ ] Vercel 배포 URL을 iOS Safari에서 접속 (T-089)
+- [ ] 로그인 화면 정상 표시 (crash 없음)
+- [ ] "관리자" 역할 데모 로그인으로 진입
+- [ ] Home 화면 데모 데이터 표시
+- [ ] RoomDetail 화면 진입 및 표시
+- [ ] FireAlertDetail 화면 진입
+- [ ] CCTVLive 화면 (시뮬레이션 or 폴백 표시)
+- [ ] FireLocation 평면도 표시
+- [ ] FireEventHistory 목록 표시
+- [ ] FireEventVideo 영상 재생 or 시뮬레이션 표시
+- [ ] 로그아웃 동작 정상
+
+### 시나리오 3: 오프라인 데모 (5분)
 
 - [ ] 모바일 앱 데모 모드 실행 — 서버 불필요 (Phase 2)
 - [ ] 샘플 데이터로 전체 화면 흐름 시연 (9개 화면)
 - [ ] "화재 감지 시뮬레이션" 버튼으로 알림 흐름 시연 (T-010)
 - [ ] 아키텍처 다이어그램 + ADR로 기술 선택 설명 (Phase 8)
 
-### 시나리오 3: 코드 워크스루 (15분)
+### 시나리오 4: 코드 워크스루 (15분)
 
 - [ ] 시스템 아키텍처 다이어그램으로 전체 구조 설명 (T-034)
 - [ ] 화재 감지 플로우: edge-IoT → API → FCM → 모바일 앱 (T-032)
@@ -650,3 +714,4 @@ T-079 ── T-080 (스크립트 정리 → 문서 플레이스홀더)
 | 2026-05-24 | v3.7 | git history 민감정보 정리 — `git-filter-repo --replace-text`로 `ember-sentinel`, `edge-IoT` 2개 레포의 전체 커밋 히스토리에서 EC2 IP, LiveKit URL, Firebase Key/Project/App ID/Sender ID/Measurement ID, Google OAuth Client ID 3개, Kakao App Key를 `***REMOVED_***` 플레이스홀더로 치환. force push 완료. 키 로테이션은 별도 진행 예정                                                                                                                                                                                                                                                                                                 |
 | 2026-06-01 | v3.8 | iOS 시뮬레이터 빌드 배포 — Apple Developer 미가입 환경에서 시뮬레이터 .app zip 배포로 대체(T-062). `.env.example` 13개 환경변수 가이드 개선, README에 iOS 시뮬레이터 빌드 생성(개발자용) + 테스터 설치 가이드(xattr -cr + xcrun simctl) 추가, 다운로드 섹션에 iOS 테스터 가이드 통합                                                                                                                                                                                                                                                                                                                                                     |
 | 2026-06-01 | v3.9 | CI 웹 번들링 수정 — `@react-native-kakao/core` 플러그인이 빈 `nativeAppKey`에서 크래시하던 문제 수정(app.config.ts 더미 키 폴백 `'DUMMY_KAKAO_KEY'`), `assets/favicon.png` 0바이트 빈 파일로 인한 jimp-compact `Could not find MIME for Buffer <null>` 에러 수정(icon.png 48x48 리사이즈로 교체)                                                                                                                                                                                                                                                                                                                                         |
+| 2026-06-01 | v4.0 | Phase 18 추가 (T-082~T-089) — 웹 빌드 및 Vercel 배포: 면접관 iOS Safari 즉시 체험을 위한 웹 빌드. expo-notifications/Google/Kakao 정적 import → 동적 require 전환(LiveKit 패턴), Alert.alert 웹 호환 유틸(window.confirm), 로컬 웹 빌드 테스트 + Vercel 정적 배포. 9개 파일 수정/생성 예정, 시연 시나리오 2(웹 데모) 추가                                                                                                                                                                                                                                                                                                                |

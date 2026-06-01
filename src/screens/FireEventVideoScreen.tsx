@@ -8,6 +8,8 @@ import {
   StatusBar,
   Animated,
   ActivityIndicator,
+  ScrollView,
+  Platform,
 } from 'react-native';
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import type { StackScreenProps } from '@react-navigation/stack';
@@ -375,92 +377,94 @@ export default function FireEventVideoScreen({ route, navigation }: Props) {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backButton}>‹</Text>
-        </TouchableOpacity>
-        <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>화재 이벤트 영상</Text>
-          <Text style={styles.headerSubtitle}>
-            {cameraName} · {room?.roomAlias || '구역'}
-          </Text>
-        </View>
-        <TouchableOpacity style={styles.downloadButton}>
-          <Text style={styles.downloadText}>⬇︎ 녹화 영상</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Video Area */}
-      <View style={styles.videoContainer}>
-        {urlLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#FF3B30" />
-            <Text style={styles.loadingText}>녹화 영상 로딩 중...</Text>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Text style={styles.backButton}>‹</Text>
+          </TouchableOpacity>
+          <View style={styles.headerContent}>
+            <Text style={styles.headerTitle}>화재 이벤트 영상</Text>
+            <Text style={styles.headerSubtitle}>
+              {cameraName} · {room?.roomAlias || '구역'}
+            </Text>
           </View>
-        ) : showS3Video ? (
-          <VideoPlayer
-            source={recordUrl!}
-            isPlaying={isPlaying}
-            onToggle={handleTogglePlay}
-            onPlaybackUpdate={handlePlaybackUpdate}
-          />
-        ) : showSampleVideo ? (
-          <>
+          <TouchableOpacity style={styles.downloadButton}>
+            <Text style={styles.downloadText}>⬇︎ 녹화 영상</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Video Area */}
+        <View style={styles.videoContainer}>
+          {urlLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#FF3B30" />
+              <Text style={styles.loadingText}>녹화 영상 로딩 중...</Text>
+            </View>
+          ) : showS3Video ? (
             <VideoPlayer
-              source={SAMPLE_FIRE_VIDEO}
+              source={recordUrl!}
               isPlaying={isPlaying}
               onToggle={handleTogglePlay}
               onPlaybackUpdate={handlePlaybackUpdate}
             />
-            {/* HUD 오버레이 (바운딩 박스 제거 — 실제 영상 위에는 덧그리지 않음) */}
-            <View style={StyleSheet.absoluteFill} pointerEvents="none">
-              {/* HUD: REC + 날짜 */}
-              <View style={rec.topLeft}>
-                <View style={rec.recBadge}>
-                  <Text style={rec.recIcon}>⏺</Text>
-                  <Text style={rec.recText}>REC</Text>
-                </View>
-                <Text style={rec.timestamp}>{event.date}</Text>
-              </View>
-              <View style={rec.topRight}>
-                <Text style={rec.camName}>{cameraName}</Text>
-              </View>
-              {/* FIRE DETECTED 배지 */}
-              {isPlaying && getDetectionsAtTime(elapsed).some((b) => b.class === 'fire') && (
-                <View style={rec.bottomBar}>
-                  <View style={rec.detectBadge}>
-                    <Text style={rec.detectText}>FIRE DETECTED</Text>
+          ) : showSampleVideo ? (
+            <>
+              <VideoPlayer
+                source={SAMPLE_FIRE_VIDEO}
+                isPlaying={isPlaying}
+                onToggle={handleTogglePlay}
+                onPlaybackUpdate={handlePlaybackUpdate}
+              />
+              {/* HUD 오버레이 (바운딩 박스 제거 — 실제 영상 위에는 덧그리지 않음) */}
+              <View style={StyleSheet.absoluteFill} pointerEvents="none">
+                {/* HUD: REC + 날짜 */}
+                <View style={rec.topLeft}>
+                  <View style={rec.recBadge}>
+                    <Text style={rec.recIcon}>⏺</Text>
+                    <Text style={rec.recText}>REC</Text>
                   </View>
+                  <Text style={rec.timestamp}>{event.date}</Text>
                 </View>
-              )}
-            </View>
-          </>
-        ) : (
-          <RecordedVideoSimulation
-            cameraName={cameraName}
-            eventDate={event.date}
-            isPlaying={isPlaying}
-            onToggle={handleTogglePlay}
-          />
-        )}
-      </View>
-
-      {/* Video Controls */}
-      <View style={styles.controls}>
-        <View style={styles.progressBar}>
-          <Text style={styles.timeText}>{formatElapsed(elapsed)}</Text>
-          <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
-            <View style={[styles.progressThumb, { left: `${Math.min(progressPercent, 97)}%` }]} />
-          </View>
-          <Text style={styles.timeText}>{formatElapsed(totalDuration)}</Text>
+                <View style={rec.topRight}>
+                  <Text style={rec.camName}>{cameraName}</Text>
+                </View>
+                {/* FIRE DETECTED 배지 */}
+                {isPlaying && getDetectionsAtTime(elapsed).some((b) => b.class === 'fire') && (
+                  <View style={rec.bottomBar}>
+                    <View style={rec.detectBadge}>
+                      <Text style={rec.detectText}>FIRE DETECTED</Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+            </>
+          ) : (
+            <RecordedVideoSimulation
+              cameraName={cameraName}
+              eventDate={event.date}
+              isPlaying={isPlaying}
+              onToggle={handleTogglePlay}
+            />
+          )}
         </View>
 
-        <TouchableOpacity style={styles.playButton} onPress={handleTogglePlay}>
-          <Text style={styles.playButtonIcon}>{isPlaying ? '❚❚' : '▶'}</Text>
-        </TouchableOpacity>
-      </View>
+        {/* Video Controls */}
+        <View style={styles.controls}>
+          <View style={styles.progressBar}>
+            <Text style={styles.timeText}>{formatElapsed(elapsed)}</Text>
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
+              <View style={[styles.progressThumb, { left: `${Math.min(progressPercent, 97)}%` }]} />
+            </View>
+            <Text style={styles.timeText}>{formatElapsed(totalDuration)}</Text>
+          </View>
+
+          <TouchableOpacity style={styles.playButton} onPress={handleTogglePlay}>
+            <Text style={styles.playButtonIcon}>{isPlaying ? '❚❚' : '▶'}</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -909,7 +913,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   videoContainer: {
-    flex: 1,
+    ...(Platform.OS === 'web' ? { height: 500, minHeight: 400 } : { flex: 1 }),
     backgroundColor: '#1a1a1a',
     margin: 20,
     borderRadius: 12,

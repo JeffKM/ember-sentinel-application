@@ -16,7 +16,28 @@ try {
 }
 
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
+
+// 웹 전용: Expo 기본 CSS(overflow:hidden, 고정 높이) 오버라이드
+if (Platform.OS === 'web' && typeof document !== 'undefined') {
+  const style = document.createElement('style');
+  style.id = 'ember-web-fixes';
+  style.textContent = `
+    html, body {
+      height: auto !important;
+      min-height: 100% !important;
+    }
+    body {
+      overflow-y: auto !important;
+    }
+    #root {
+      height: auto !important;
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+  `;
+  document.head.appendChild(style);
+}
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import type { NavigationContainerRef } from '@react-navigation/native';
@@ -146,12 +167,14 @@ function AppNavigator() {
     );
 
     // Cold start: 앱이 알림 탭으로 열린 경우 처리
-    Notifications.getLastNotificationResponseAsync().then((response) => {
-      if (response) {
-        console.log('🧊 Cold start 알림 감지');
-        handleNotificationNavigation(response.notification);
-      }
-    });
+    Notifications.getLastNotificationResponseAsync()
+      .then((response) => {
+        if (response) {
+          console.log('🧊 Cold start 알림 감지');
+          handleNotificationNavigation(response.notification);
+        }
+      })
+      .catch(() => null);
 
     // 앱 시작 시 FCM 토큰 초기화 시도
     const initFCM = async () => {
@@ -286,6 +309,14 @@ function AppNavigator() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    ...(Platform.OS === 'web'
+      ? {
+          maxWidth: 480,
+          width: '100%' as any,
+          marginHorizontal: 'auto',
+          minHeight: '100vh' as any,
+        }
+      : {}),
   },
 });
 

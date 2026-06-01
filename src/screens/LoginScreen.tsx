@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   Image,
   ActivityIndicator,
   ScrollView,
@@ -13,14 +12,30 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import Constants from 'expo-constants';
 import * as Application from 'expo-application';
-import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
-import { initializeKakaoSDK } from '@react-native-kakao/core';
-import { login as kakaoSDKLogin, me as getKakaoProfile } from '@react-native-kakao/user';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import { GOOGLE_CONFIG, KAKAO_CONFIG } from '../config/socialLogin';
 import { API_BASE_URL } from '../config/api';
+import { confirmAlert, infoAlert } from '../utils/webAlert';
 import type { UserInfo } from '../types';
+
+// 네이티브 전용 SDK 동적 로딩 (웹에서 crash 방지)
+function getNativeAuthModules() {
+  try {
+    return {
+      GoogleSignin: require('@react-native-google-signin/google-signin').GoogleSignin,
+      statusCodes: require('@react-native-google-signin/google-signin').statusCodes,
+      initializeKakaoSDK: require('@react-native-kakao/core').initializeKakaoSDK,
+      kakaoSDKLogin: require('@react-native-kakao/user').login,
+      getKakaoProfile: require('@react-native-kakao/user').me,
+      available: true as const,
+    };
+  } catch {
+    return { available: false as const } as any;
+  }
+}
+
+const isWeb = Platform.OS === 'web';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -34,70 +49,73 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
   // Expo Go를 사용하는지 확인 (development build가 아닌 경우)
   const isExpoGo: boolean = Constants.appOwnership === 'expo';
 
+  // 웹 또는 Expo Go에서는 네이티브 SDK 사용 불가
+  const isNativeSDKAvailable = !isWeb && !isExpoGo;
+
   // Google Sign-In 초기화
   useEffect(() => {
-    if (!isExpoGo) {
-      // Development build에서만 Google Sign-In 초기화
-      GoogleSignin.configure({
-        webClientId: GOOGLE_CONFIG.clientId, // Web 클라이언트 ID (필수)
-        iosClientId: GOOGLE_CONFIG.iosClientId, // iOS 클라이언트 ID
-        offlineAccess: false, // 단순화를 위해 비활성화
-      });
+    if (!isNativeSDKAvailable) return;
 
-      // 카카오 SDK 초기화 (비동기 처리)
-      const initKakaoSDK = async () => {
+    const nativeAuth = getNativeAuthModules();
+    if (!nativeAuth.available) return;
+
+    // Development build에서만 Google Sign-In 초기화
+    nativeAuth.GoogleSignin.configure({
+      webClientId: GOOGLE_CONFIG.clientId,
+      iosClientId: GOOGLE_CONFIG.iosClientId,
+      offlineAccess: false,
+    });
+
+    // 카카오 SDK 초기화 (비동기 처리)
+    const initKakaoSDK = async () => {
+      try {
+        let bundleId: string = 'unknown';
         try {
-          // 실제 번들 ID 확인 (여러 방법 시도)
-          let bundleId: string = 'unknown';
-          try {
-            if (Platform.OS === 'ios') {
-              try {
-                bundleId = Application.applicationId || 'unknown';
-              } catch (e) {
-                bundleId =
-                  (Constants.manifest as any)?.ios?.bundleIdentifier ||
-                  (Constants.manifest2 as any)?.extra?.expoClient?.ios?.bundleIdentifier ||
-                  'unknown';
-              }
-            } else {
+          if (Platform.OS === 'ios') {
+            try {
+              bundleId = Application.applicationId || 'unknown';
+            } catch (e) {
               bundleId =
-                Application.applicationId ||
-                (Constants.manifest as any)?.android?.package ||
+                (Constants.manifest as any)?.ios?.bundleIdentifier ||
+                (Constants.manifest2 as any)?.extra?.expoClient?.ios?.bundleIdentifier ||
                 'unknown';
             }
-          } catch (bundleIdError) {
+          } else {
             bundleId =
-              (Constants.manifest as any)?.ios?.bundleIdentifier ||
-              (Constants.manifest2 as any)?.extra?.expoClient?.ios?.bundleIdentifier ||
+              Application.applicationId ||
+              (Constants.manifest as any)?.android?.package ||
               'unknown';
           }
-
-          console.log('🔍 카카오 SDK 초기화 - Bundle ID:', bundleId);
-
-          await initializeKakaoSDK(KAKAO_CONFIG.appKey);
-          console.log('✅ 카카오 SDK 초기화 완료');
-        } catch (error) {
-          console.error('❌ 카카오 SDK 초기화 실패:', error);
+        } catch (bundleIdError) {
+          bundleId =
+            (Constants.manifest as any)?.ios?.bundleIdentifier ||
+            (Constants.manifest2 as any)?.extra?.expoClient?.ios?.bundleIdentifier ||
+            'unknown';
         }
-      };
 
-      initKakaoSDK();
-    }
-  }, [isExpoGo]);
+        console.log('🔍 카카오 SDK 초기화 - Bundle ID:', bundleId);
+
+        await nativeAuth.initializeKakaoSDK(KAKAO_CONFIG.appKey);
+        console.log('✅ 카카오 SDK 초기화 완료');
+      } catch (error) {
+        console.error('❌ 카카오 SDK 초기화 실패:', error);
+      }
+    };
+
+    initKakaoSDK();
+  }, [isNativeSDKAvailable]);
 
   // 구글 로그인 처리
   const handleGoogleLogin = async () => {
     try {
       setLoading(true);
 
-      // Expo Go에서는 AuthSession 사용
-      if (isExpoGo) {
-        console.log('🔄 Expo Go 환경에서 AuthSession으로 구글 로그인 시도...');
+      // 웹 또는 Expo Go에서는 AuthSession 사용
+      if (!isNativeSDKAvailable) {
+        console.log('🔄 웹/Expo Go 환경에서 AuthSession으로 구글 로그인 시도...');
 
         try {
-          const redirectUri = AuthSession.makeRedirectUri({
-            //            useProxy: true,
-          });
+          const redirectUri = AuthSession.makeRedirectUri({});
 
           console.log('🔗 Redirect URI:', redirectUri);
 
@@ -117,32 +135,26 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
           console.log('📱 AuthSession 결과:', result);
 
           if (result.type === 'success') {
-            Alert.alert(
-              'Expo Go 제한',
-              'Expo Go에서는 완전한 구글 로그인이 제한됩니다.\n\n오프라인 모드로 진행하거나 테스트 로그인을 사용해주세요.',
-              [
-                { text: '테스트 로그인 사용', style: 'cancel' },
-                {
-                  text: '오프라인 모드',
-                  onPress: () => {
-                    onLogin('expo_go_token', 'admin', {
-                      email: 'test@example.com',
-                      nickname: 'Expo Go 사용자',
-                      provider: 'google',
-                      isOfflineMode: true,
-                    });
-                  },
-                },
-              ],
+            confirmAlert(
+              '환경 제한',
+              '현재 환경에서는 완전한 구글 로그인이 제한됩니다.\n\n오프라인 모드로 진행합니다.',
+              () => {
+                onLogin('expo_go_token', 'admin', {
+                  email: 'test@example.com',
+                  nickname: 'Expo Go 사용자',
+                  provider: 'google',
+                  isOfflineMode: true,
+                });
+              },
             );
           } else {
-            Alert.alert('로그인 취소', '구글 로그인이 취소되었습니다.');
+            infoAlert('로그인 취소', '구글 로그인이 취소되었습니다.');
           }
         } catch (authError) {
           console.error('AuthSession 오류:', authError);
-          Alert.alert(
-            'Expo Go 제한',
-            'Expo Go에서는 구글 로그인이 제한됩니다.\n\n테스트 로그인을 사용해주세요.',
+          infoAlert(
+            '환경 제한',
+            '현재 환경에서는 구글 로그인이 제한됩니다.\n\n테스트 로그인을 사용해주세요.',
           );
         }
 
@@ -150,17 +162,21 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
         return;
       }
 
-      console.log('🔑 구글 로그인 시작...');
-
-      // Google Sign-In 상태 확인 (iOS에서는 필요 없을 수 있음)
-      if (Platform.OS === 'android') {
-        await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      const nativeAuth = getNativeAuthModules();
+      if (!nativeAuth.available) {
+        setLoading(false);
+        infoAlert('오류', '네이티브 인증 모듈을 로드할 수 없습니다.');
+        return;
       }
 
-      // Google 로그인 실행
-      const userInfo = await GoogleSignin.signIn();
+      console.log('🔑 구글 로그인 시작...');
 
-      // 사용자가 로그인을 취소한 경우
+      if (Platform.OS === 'android') {
+        await nativeAuth.GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      }
+
+      const userInfo = await nativeAuth.GoogleSignin.signIn();
+
       if ((userInfo as any)?.type === 'cancelled' || !(userInfo as any)?.data) {
         console.log('ℹ️ 구글 로그인 취소됨');
         setLoading(false);
@@ -169,8 +185,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
 
       console.log('✅ 구글 로그인 성공:', userInfo);
 
-      // 토큰들 가져오기 (accessToken, idToken)
-      const tokens = await GoogleSignin.getTokens();
+      const tokens = await nativeAuth.GoogleSignin.getTokens();
       console.log('🔑 토큰 정보:', {
         hasAccessToken: !!tokens?.accessToken,
         hasIdToken: !!tokens?.idToken,
@@ -180,83 +195,69 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
       if (accessToken) {
         console.log('✅ 구글 로그인 성공! 서버 연결을 시도합니다...');
 
-        // 먼저 오프라인 모드 옵션을 제공
-        Alert.alert(
+        confirmAlert(
           '로그인 방식 선택',
-          '구글 로그인이 성공했습니다!\n\n어떤 방식으로 계속하시겠습니까?',
-          [
-            {
-              text: '서버 연결',
-              onPress: async () => {
-                try {
-                  console.log('📤 서버로 토큰 전송 중...');
-                  console.log('🌐 서버 URL:', `${API_BASE_URL}/auth/google`);
+          '구글 로그인이 성공했습니다!\n\n서버에 연결하시겠습니까?',
+          async () => {
+            try {
+              console.log('📤 서버로 토큰 전송 중...');
+              console.log('🌐 서버 URL:', `${API_BASE_URL}/auth/google`);
 
-                  const controller = new AbortController();
-                  const timeoutId = setTimeout(() => controller.abort(), 8000);
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-                  const response = await fetch(`${API_BASE_URL}/auth/google`, {
-                    method: 'POST',
-                    headers: {
-                      accept: '*/*',
-                      'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ accessToken }),
-                    signal: controller.signal,
-                  });
+              const response = await fetch(`${API_BASE_URL}/auth/google`, {
+                method: 'POST',
+                headers: {
+                  accept: '*/*',
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ accessToken }),
+                signal: controller.signal,
+              });
 
-                  clearTimeout(timeoutId);
+              clearTimeout(timeoutId);
 
-                  if (!response.ok) {
-                    throw new Error(`서버 오류: ${response.status}`);
-                  }
+              if (!response.ok) {
+                throw new Error(`서버 오류: ${response.status}`);
+              }
 
-                  const loginResponse = await response.json();
-                  console.log('✅ 서버 연결 성공!');
+              const loginResponse = await response.json();
+              console.log('✅ 서버 연결 성공!');
 
-                  onLogin(loginResponse.accessToken, 'admin', {
+              onLogin(loginResponse.accessToken, 'admin', {
+                email: (userInfo as any)?.data?.user?.email,
+                nickname: (userInfo as any)?.data?.user?.name,
+                provider: 'google',
+                refreshToken: loginResponse.refreshToken,
+                expiresIn: loginResponse.accessTokenExpiresIn,
+                isNewUser: loginResponse.isNewUser,
+              });
+            } catch (serverError) {
+              console.log('❌ 서버 연결 실패, 오프라인 모드로 전환');
+              infoAlert(
+                '서버 연결 실패',
+                '서버에 연결할 수 없습니다.\n오프라인 모드로 진행합니다.',
+                () => {
+                  onLogin(accessToken, 'admin', {
                     email: (userInfo as any)?.data?.user?.email,
                     nickname: (userInfo as any)?.data?.user?.name,
                     provider: 'google',
-                    refreshToken: loginResponse.refreshToken,
-                    expiresIn: loginResponse.accessTokenExpiresIn,
-                    isNewUser: loginResponse.isNewUser,
+                    isOfflineMode: true,
                   });
-                } catch (serverError) {
-                  console.log('❌ 서버 연결 실패, 오프라인 모드로 전환');
-                  Alert.alert(
-                    '서버 연결 실패',
-                    '서버에 연결할 수 없습니다.\n오프라인 모드로 진행합니다.',
-                    [
-                      {
-                        text: '확인',
-                        onPress: () => {
-                          onLogin(accessToken, 'admin', {
-                            email: (userInfo as any)?.data?.user?.email,
-                            nickname: (userInfo as any)?.data?.user?.name,
-                            provider: 'google',
-                            isOfflineMode: true,
-                          });
-                        },
-                      },
-                    ],
-                  );
-                }
-              },
-            },
-            {
-              text: '오프라인 모드',
-              onPress: () => {
-                console.log('🔄 사용자가 오프라인 모드 선택');
-                onLogin(accessToken, 'admin', {
-                  email: (userInfo as any)?.data?.user?.email,
-                  nickname: (userInfo as any)?.data?.user?.name,
-                  provider: 'google',
-                  isOfflineMode: true,
-                });
-              },
-            },
-          ],
+                },
+              );
+            }
+          },
+          () => {
+            console.log('🔄 사용자가 오프라인 모드 선택');
+            onLogin(accessToken, 'admin', {
+              email: (userInfo as any)?.data?.user?.email,
+              nickname: (userInfo as any)?.data?.user?.name,
+              provider: 'google',
+              isOfflineMode: true,
+            });
+          },
         );
       } else {
         throw new Error('액세스 토큰을 받을 수 없습니다.');
@@ -265,31 +266,25 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
       setLoading(false);
       console.error('❌ 구글 로그인 오류:', error);
 
-      // URL 스키마 오류나 설정 오류인 경우
+      const nativeAuth = getNativeAuthModules();
       if (
-        error.message.includes('URL schemes') ||
-        error.message.includes('configuration') ||
-        error.code === statusCodes.SIGN_IN_CANCELLED
+        error.message?.includes('URL schemes') ||
+        error.message?.includes('configuration') ||
+        (nativeAuth.available && error.code === nativeAuth.statusCodes.SIGN_IN_CANCELLED)
       ) {
         console.log('🔄 구글 로그인 설정 문제 감지, 오프라인 모드 제공');
 
-        Alert.alert(
+        confirmAlert(
           '구글 로그인 제한',
           '현재 환경에서는 구글 로그인이 제한됩니다.\n\n오프라인 모드로 진행하시겠습니까?',
-          [
-            { text: '취소', style: 'cancel' },
-            {
-              text: '오프라인 모드',
-              onPress: () => {
-                onLogin('offline_google_token', 'admin', {
-                  email: 'google.user@example.com',
-                  nickname: '구글 사용자 (오프라인)',
-                  provider: 'google',
-                  isOfflineMode: true,
-                });
-              },
-            },
-          ],
+          () => {
+            onLogin('offline_google_token', 'admin', {
+              email: 'google.user@example.com',
+              nickname: '구글 사용자 (오프라인)',
+              provider: 'google',
+              isOfflineMode: true,
+            });
+          },
         );
         return;
       }
@@ -299,31 +294,31 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
         errorMessage += `\n\n오류: ${error.message}`;
       }
 
-      Alert.alert('로그인 실패', errorMessage);
+      infoAlert('로그인 실패', errorMessage);
     }
   };
 
   // 카카오 로그인 처리
   const handleKakaoLogin = async () => {
-    if (isExpoGo) {
-      Alert.alert(
-        'Expo Go 제한',
-        'Expo Go에서는 카카오 로그인이 제한됩니다.\n\n오프라인 모드로 진행하거나 테스트 로그인을 사용해주세요.',
-        [
-          { text: '테스트 로그인 사용', style: 'cancel' },
-          {
-            text: '오프라인 모드',
-            onPress: () => {
-              onLogin('expo_go_kakao_token', 'editor', {
-                email: 'kakao@example.com',
-                nickname: 'Expo Go 카카오 사용자',
-                provider: 'kakao',
-                isOfflineMode: true,
-              });
-            },
-          },
-        ],
+    if (!isNativeSDKAvailable) {
+      confirmAlert(
+        '환경 제한',
+        '현재 환경에서는 카카오 로그인이 제한됩니다.\n\n오프라인 모드로 진행하시겠습니까?',
+        () => {
+          onLogin('expo_go_kakao_token', 'editor', {
+            email: 'kakao@example.com',
+            nickname: '카카오 사용자 (오프라인)',
+            provider: 'kakao',
+            isOfflineMode: true,
+          });
+        },
       );
+      return;
+    }
+
+    const nativeAuth = getNativeAuthModules();
+    if (!nativeAuth.available) {
+      infoAlert('오류', '네이티브 인증 모듈을 로드할 수 없습니다.');
       return;
     }
 
@@ -331,16 +326,15 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
       setLoading(true);
       console.log('🔑 카카오 로그인 시작...');
 
-      const tokenResult = await kakaoSDKLogin();
+      const tokenResult = await nativeAuth.kakaoSDKLogin();
       console.log('✅ 카카오 토큰 결과:', tokenResult);
 
       if (tokenResult?.accessToken) {
         console.log('✅ 카카오 로그인 성공! 서버 연결을 시도합니다...');
 
-        // 사용자 정보 미리 가져오기
         let profile: any = null;
         try {
-          profile = await getKakaoProfile();
+          profile = await nativeAuth.getKakaoProfile();
         } catch (profileError) {
           console.log('⚠️ 카카오 프로필 가져오기 실패:', profileError);
         }
@@ -348,84 +342,71 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
         const userEmail = profile?.kakaoAccount?.email;
         const userNickname = profile?.kakaoAccount?.profile?.nickname;
 
-        Alert.alert(
+        confirmAlert(
           '로그인 방식 선택',
-          '카카오 로그인이 성공했습니다!\n\n어떤 방식으로 계속하시겠습니까?',
-          [
-            {
-              text: '서버 연결',
-              onPress: async () => {
-                try {
-                  console.log('📤 서버로 카카오 토큰 전송 중...');
+          '카카오 로그인이 성공했습니다!\n\n서버에 연결하시겠습니까?',
+          async () => {
+            try {
+              console.log('📤 서버로 카카오 토큰 전송 중...');
 
-                  const controller = new AbortController();
-                  const timeoutId = setTimeout(() => controller.abort(), 8000);
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-                  const response = await fetch(`${API_BASE_URL}/auth/kakao`, {
-                    method: 'POST',
-                    headers: {
-                      accept: '*/*',
-                      'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ accessToken: tokenResult.accessToken }),
-                    signal: controller.signal,
-                  });
+              const response = await fetch(`${API_BASE_URL}/auth/kakao`, {
+                method: 'POST',
+                headers: {
+                  accept: '*/*',
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ accessToken: tokenResult.accessToken }),
+                signal: controller.signal,
+              });
 
-                  clearTimeout(timeoutId);
+              clearTimeout(timeoutId);
 
-                  if (!response.ok) {
-                    throw new Error(`서버 오류: ${response.status}`);
-                  }
+              if (!response.ok) {
+                throw new Error(`서버 오류: ${response.status}`);
+              }
 
-                  const loginResponse = await response.json();
-                  console.log('✅ 카카오 서버 연결 성공!');
+              const loginResponse = await response.json();
+              console.log('✅ 카카오 서버 연결 성공!');
 
-                  onLogin(loginResponse.accessToken, 'editor', {
+              onLogin(loginResponse.accessToken, 'editor', {
+                email: userEmail,
+                nickname: userNickname,
+                kakaoId: profile?.id,
+                provider: 'kakao',
+                refreshToken: loginResponse.refreshToken,
+                expiresIn: loginResponse.accessTokenExpiresIn,
+                isNewUser: loginResponse.isNewUser,
+              });
+            } catch (serverError) {
+              console.log('❌ 카카오 서버 연결 실패, 오프라인 모드로 전환');
+              infoAlert(
+                '서버 연결 실패',
+                '서버에 연결할 수 없습니다.\n오프라인 모드로 진행합니다.',
+                () => {
+                  onLogin(tokenResult.accessToken, 'editor', {
                     email: userEmail,
                     nickname: userNickname,
                     kakaoId: profile?.id,
                     provider: 'kakao',
-                    refreshToken: loginResponse.refreshToken,
-                    expiresIn: loginResponse.accessTokenExpiresIn,
-                    isNewUser: loginResponse.isNewUser,
+                    isOfflineMode: true,
                   });
-                } catch (serverError) {
-                  console.log('❌ 카카오 서버 연결 실패, 오프라인 모드로 전환');
-                  Alert.alert(
-                    '서버 연결 실패',
-                    '서버에 연결할 수 없습니다.\n오프라인 모드로 진행합니다.',
-                    [
-                      {
-                        text: '확인',
-                        onPress: () => {
-                          onLogin(tokenResult.accessToken, 'editor', {
-                            email: userEmail,
-                            nickname: userNickname,
-                            kakaoId: profile?.id,
-                            provider: 'kakao',
-                            isOfflineMode: true,
-                          });
-                        },
-                      },
-                    ],
-                  );
-                }
-              },
-            },
-            {
-              text: '오프라인 모드',
-              onPress: () => {
-                console.log('🔄 사용자가 카카오 오프라인 모드 선택');
-                onLogin(tokenResult.accessToken, 'editor', {
-                  email: userEmail,
-                  nickname: userNickname,
-                  kakaoId: profile?.id,
-                  provider: 'kakao',
-                  isOfflineMode: true,
-                });
-              },
-            },
-          ],
+                },
+              );
+            }
+          },
+          () => {
+            console.log('🔄 사용자가 카카오 오프라인 모드 선택');
+            onLogin(tokenResult.accessToken, 'editor', {
+              email: userEmail,
+              nickname: userNickname,
+              kakaoId: profile?.id,
+              provider: 'kakao',
+              isOfflineMode: true,
+            });
+          },
         );
       } else {
         throw new Error('카카오 액세스 토큰을 받을 수 없습니다.');
@@ -434,26 +415,19 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
       setLoading(false);
       console.error('❌ 카카오 로그인 오류:', error);
 
-      // 설정 오류나 환경 제한인 경우
       console.log('🔄 카카오 로그인 문제 감지, 오프라인 모드 제공');
 
-      Alert.alert(
+      confirmAlert(
         '카카오 로그인 제한',
         '현재 환경에서는 카카오 로그인이 제한됩니다.\n\n오프라인 모드로 진행하시겠습니까?',
-        [
-          { text: '취소', style: 'cancel' },
-          {
-            text: '오프라인 모드',
-            onPress: () => {
-              onLogin('offline_kakao_token', 'editor', {
-                email: 'kakao.user@example.com',
-                nickname: '카카오 사용자 (오프라인)',
-                provider: 'kakao',
-                isOfflineMode: true,
-              });
-            },
-          },
-        ],
+        () => {
+          onLogin('offline_kakao_token', 'editor', {
+            email: 'kakao.user@example.com',
+            nickname: '카카오 사용자 (오프라인)',
+            provider: 'kakao',
+            isOfflineMode: true,
+          });
+        },
       );
     }
   };
@@ -464,15 +438,13 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
       viewer: '사용자',
     };
 
-    Alert.alert(`${roleNames[role]} 로그인`, `${roleNames[role]} 계정으로 로그인하시겠습니까?`, [
-      { text: '취소', style: 'cancel' },
-      {
-        text: '로그인',
-        onPress: () => {
-          onLogin(`${role}-token-` + Date.now(), role);
-        },
+    confirmAlert(
+      `${roleNames[role]} 로그인`,
+      `${roleNames[role]} 계정으로 로그인하시겠습니까?`,
+      () => {
+        onLogin(`${role}-token-` + Date.now(), role);
       },
-    ]);
+    );
   };
 
   return (
@@ -500,7 +472,16 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
           <Text style={styles.subtitle}>실시간 화재 감지 모니터링</Text>
           <Text style={styles.tagline}>Always Watching, Always Protected</Text>
 
-          {isExpoGo && (
+          {isWeb && (
+            <View style={styles.expoGoNotice}>
+              <Text style={styles.expoGoNoticeText}>🌐 웹 데모 버전</Text>
+              <Text style={styles.expoGoNoticeSubText}>
+                아래 역할별 테스트 로그인을 이용해주세요
+              </Text>
+            </View>
+          )}
+
+          {!isWeb && isExpoGo && (
             <View style={styles.expoGoNotice}>
               <Text style={styles.expoGoNoticeText}>📱 Expo Go 환경에서 실행 중</Text>
               <Text style={styles.expoGoNoticeSubText}>소셜 로그인 기능이 제한됩니다</Text>
@@ -514,32 +495,36 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
             </View>
           )}
 
-          <View style={styles.socialButtonsContainer}>
-            <TouchableOpacity
-              style={[styles.socialButton, styles.googleButton, loading && styles.disabledButton]}
-              onPress={handleGoogleLogin}
-              disabled={loading}
-            >
-              <Text style={styles.socialButtonIcon}>G</Text>
-              <Text style={styles.socialButtonText}>구글로 계속하기</Text>
-            </TouchableOpacity>
+          {!isWeb && (
+            <View style={styles.socialButtonsContainer}>
+              <TouchableOpacity
+                style={[styles.socialButton, styles.googleButton, loading && styles.disabledButton]}
+                onPress={handleGoogleLogin}
+                disabled={loading}
+              >
+                <Text style={styles.socialButtonIcon}>G</Text>
+                <Text style={styles.socialButtonText}>구글로 계속하기</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.socialButton, styles.kakaoButton, loading && styles.disabledButton]}
-              onPress={handleKakaoLogin}
-              disabled={loading}
-            >
-              <Text style={styles.socialButtonIcon}>K</Text>
-              <Text style={styles.socialButtonText}>카카오로 계속하기</Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.socialButton, styles.kakaoButton, loading && styles.disabledButton]}
+                onPress={handleKakaoLogin}
+                disabled={loading}
+              >
+                <Text style={styles.socialButtonIcon}>K</Text>
+                <Text style={styles.socialButtonText}>카카오로 계속하기</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        {!isWeb && (
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>또는</Text>
+            <View style={styles.dividerLine} />
           </View>
-        </View>
-
-        <View style={styles.divider}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>또는</Text>
-          <View style={styles.dividerLine} />
-        </View>
+        )}
 
         <View style={styles.whiteCard}>
           <Text style={styles.instructionText}>아래에서 역할을 선택하여 테스트 로그인하세요</Text>
@@ -581,6 +566,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    ...(Platform.OS === 'web' ? { minHeight: '100vh' as any } : {}),
   },
   contentContainer: {
     alignItems: 'center',

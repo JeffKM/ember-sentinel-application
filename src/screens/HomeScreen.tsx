@@ -8,15 +8,16 @@ import {
   TouchableWithoutFeedback,
   SafeAreaView,
   StatusBar,
-  Alert,
   Modal,
   TextInput,
   Image,
   ActivityIndicator,
   RefreshControl,
   GestureResponderEvent,
+  Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { confirmAlert, infoAlert } from '../utils/webAlert';
 import { runNetworkDiagnostics } from '../utils/networkTest';
 import { getRoomData, getBuildingList, createRoom, deleteRoom } from '../config/api';
 import { getDemoRoomData, getDemoBuildings } from '../data/demoData';
@@ -111,31 +112,22 @@ export default function HomeScreen({ navigation, onLogout, userRole }: HomeScree
 
   // 데이터가 비어있을 때 데모 데이터 추가 여부 확인
   const promptDemoData = (serverData?: RoomSummaryResponse | null) => {
-    Alert.alert(
+    confirmAlert(
       '데모 데이터 추가',
       '등록된 방이 없습니다.\n인하대 캠퍼스 데모 데이터를 채워볼까요?',
-      [
-        {
-          text: '아니요',
-          style: 'cancel',
-          onPress: () => {
-            setRoomData(
-              serverData || {
-                totalRoomCount: 0,
-                totalCameraCount: 0,
-                liveStreamCount: 0,
-                roomList: [],
-              },
-            );
+      () => {
+        mergeWithDemoData(serverData);
+      },
+      () => {
+        setRoomData(
+          serverData || {
+            totalRoomCount: 0,
+            totalCameraCount: 0,
+            liveStreamCount: 0,
+            roomList: [],
           },
-        },
-        {
-          text: '추가할게요',
-          onPress: () => {
-            mergeWithDemoData(serverData);
-          },
-        },
-      ],
+        );
+      },
     );
   };
 
@@ -163,17 +155,12 @@ export default function HomeScreen({ navigation, onLogout, userRole }: HomeScree
     } catch (error) {
       console.error('❌ Room 데이터 로딩 실패:', error);
 
-      Alert.alert(
+      infoAlert(
         '데이터 로딩 실패',
         '서버에서 데이터를 가져올 수 없습니다.\n오프라인 모드로 전환합니다.',
-        [
-          {
-            text: '확인',
-            onPress: () => {
-              setIsOfflineMode(true);
-            },
-          },
-        ],
+        () => {
+          setIsOfflineMode(true);
+        },
       );
     } finally {
       setIsLoading(false);
@@ -189,7 +176,7 @@ export default function HomeScreen({ navigation, onLogout, userRole }: HomeScree
 
   // 네트워크 테스트 함수
   const handleNetworkTest = async () => {
-    Alert.alert('네트워크 테스트', '네트워크 상태를 확인합니다. 콘솔을 확인해주세요.');
+    infoAlert('네트워크 테스트', '네트워크 상태를 확인합니다. 콘솔을 확인해주세요.');
 
     try {
       const results = await runNetworkDiagnostics();
@@ -199,28 +186,22 @@ export default function HomeScreen({ navigation, onLogout, userRole }: HomeScree
       message += `서버 연결: ${results.serverConnection ? '✅ 정상' : '❌ 실패'}`;
 
       if (results.serverConnection && isOfflineMode) {
-        message += '\n\n🎉 서버 연결이 복구되었습니다!';
+        message += '\n\n서버 연결이 복구되었습니다!';
 
-        Alert.alert('네트워크 진단 결과', message, [
-          { text: '계속 오프라인', style: 'cancel' },
-          {
-            text: '온라인 모드로 전환',
-            onPress: () => {
-              setIsOfflineMode(false);
-              Alert.alert('성공', '온라인 모드로 전환되었습니다!');
-            },
-          },
-        ]);
+        confirmAlert('네트워크 진단 결과', message, () => {
+          setIsOfflineMode(false);
+          infoAlert('성공', '온라인 모드로 전환되었습니다!');
+        });
         return;
       }
 
       if (!results.serverConnection && results.basicNetwork) {
-        message += '\n\n💡 네이티브 빌드를 시도해보세요:\nexpo run:ios 또는 expo run:android';
+        message += '\n\n네이티브 빌드를 시도해보세요:\nexpo run:ios 또는 expo run:android';
       }
 
-      Alert.alert('네트워크 진단 결과', message);
+      infoAlert('네트워크 진단 결과', message);
     } catch (error: any) {
-      Alert.alert('오류', `네트워크 테스트 중 오류가 발생했습니다: ${error.message}`);
+      infoAlert('오류', `네트워크 테스트 중 오류가 발생했습니다: ${error.message}`);
     }
   };
   // 실제 데이터 또는 로딩 상태
@@ -286,21 +267,16 @@ export default function HomeScreen({ navigation, onLogout, userRole }: HomeScree
       }
     } catch (error) {
       console.error('❌ 빌딩 목록 로딩 실패:', error);
-      Alert.alert('오류', '빌딩 목록을 불러올 수 없습니다.\n오프라인 모드로 전환합니다.', [
-        {
-          text: '확인',
-          onPress: () => {
-            setIsOfflineMode(true);
-            setBuildingList(getDemoBuildings());
-          },
-        },
-      ]);
+      infoAlert('오류', '빌딩 목록을 불러올 수 없습니다.\n오프라인 모드로 전환합니다.', () => {
+        setIsOfflineMode(true);
+        setBuildingList(getDemoBuildings());
+      });
     }
   };
 
   const handleAddRoom = async () => {
     if (!canAddRoom) {
-      Alert.alert('권한 없음', '사용자는 구역을 추가할 수 없습니다.');
+      infoAlert('권한 없음', '사용자는 구역을 추가할 수 없습니다.');
       return;
     }
 
@@ -309,9 +285,8 @@ export default function HomeScreen({ navigation, onLogout, userRole }: HomeScree
   };
 
   const handleSubmitRoom = async () => {
-    // 입력 검증
     if (!newRoom.buildingId || !newRoom.floor || !newRoom.roomNumber || !newRoom.roomAlias) {
-      Alert.alert('입력 오류', '건물, 층수, 호실, 별칭을 모두 입력해주세요.');
+      infoAlert('입력 오류', '건물, 층수, 호실, 별칭을 모두 입력해주세요.');
       return;
     }
 
@@ -321,32 +296,24 @@ export default function HomeScreen({ navigation, onLogout, userRole }: HomeScree
 
       await createRoom(newRoom.buildingId, newRoom.roomAlias, newRoom.floor, newRoom.roomNumber);
 
-      Alert.alert(
+      infoAlert(
         '구역 추가 완료',
         `${newRoom.buildingName} ${newRoom.floor} ${newRoom.roomNumber}호가 추가되었습니다.`,
-        [
-          {
-            text: '확인',
-            onPress: async () => {
-              // 모달 닫고 초기화
-              setIsAddModalVisible(false);
-              setNewRoom({
-                buildingId: null,
-                buildingName: '',
-                floor: '',
-                roomNumber: '',
-                roomAlias: '',
-              });
-
-              // Room 목록 새로고침
-              await loadRoomData();
-            },
-          },
-        ],
+        async () => {
+          setIsAddModalVisible(false);
+          setNewRoom({
+            buildingId: null,
+            buildingName: '',
+            floor: '',
+            roomNumber: '',
+            roomAlias: '',
+          });
+          await loadRoomData();
+        },
       );
     } catch (error: any) {
       console.error('❌ Room 추가 실패:', error);
-      Alert.alert(
+      infoAlert(
         '구역 추가 실패',
         error.message || '서버에 구역을 추가할 수 없습니다. 다시 시도해주세요.',
       );
@@ -378,40 +345,27 @@ export default function HomeScreen({ navigation, onLogout, userRole }: HomeScree
 
   const handleDeleteRoom = (room: Room): void => {
     if (!canAddRoom) {
-      Alert.alert('권한 없음', '사용자는 구역을 삭제할 수 없습니다.');
+      infoAlert('권한 없음', '사용자는 구역을 삭제할 수 없습니다.');
       return;
     }
 
-    Alert.alert('구역 삭제', `${room.roomAlias}을(를) 삭제하시겠습니까?`, [
-      { text: '취소', style: 'cancel' },
-      {
-        text: '삭제',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            console.log('🗑️ Room 삭제 요청...');
+    confirmAlert('구역 삭제', `${room.roomAlias}을(를) 삭제하시겠습니까?`, async () => {
+      try {
+        console.log('🗑️ Room 삭제 요청...');
 
-            await deleteRoom(room.roomId);
+        await deleteRoom(room.roomId);
 
-            Alert.alert('삭제 완료', `${room.roomAlias}이(가) 삭제되었습니다.`, [
-              {
-                text: '확인',
-                onPress: async () => {
-                  // Room 목록 새로고침
-                  await loadRoomData();
-                },
-              },
-            ]);
-          } catch (error: any) {
-            console.error('❌ Room 삭제 실패:', error);
-            Alert.alert(
-              '삭제 실패',
-              error.message || '서버에서 구역을 삭제할 수 없습니다. 다시 시도해주세요.',
-            );
-          }
-        },
-      },
-    ]);
+        infoAlert('삭제 완료', `${room.roomAlias}이(가) 삭제되었습니다.`, async () => {
+          await loadRoomData();
+        });
+      } catch (error: any) {
+        console.error('❌ Room 삭제 실패:', error);
+        infoAlert(
+          '삭제 실패',
+          error.message || '서버에서 구역을 삭제할 수 없습니다. 다시 시도해주세요.',
+        );
+      }
+    });
   };
 
   return (
@@ -438,10 +392,7 @@ export default function HomeScreen({ navigation, onLogout, userRole }: HomeScree
         <TouchableOpacity
           style={styles.logoutButton}
           onPress={() => {
-            Alert.alert('로그아웃', '로그아웃 하시겠습니까?', [
-              { text: '취소', style: 'cancel' },
-              { text: '로그아웃', onPress: onLogout, style: 'destructive' },
-            ]);
+            confirmAlert('로그아웃', '로그아웃 하시겠습니까?', onLogout);
           }}
         >
           <Text style={styles.logoutIcon}>🔄</Text>
@@ -762,6 +713,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F5F5F5',
+    ...(Platform.OS === 'web' ? { minHeight: '100vh' as any } : {}),
   },
   header: {
     backgroundColor: '#FF3B30',
