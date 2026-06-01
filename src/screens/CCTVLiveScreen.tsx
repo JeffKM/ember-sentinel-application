@@ -81,22 +81,52 @@ function DemoVideoFallback({
   const formatTime = (d: Date): string =>
     `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
 
+  // 웹: HTML video 엘리먼트 ref로 시간 추적
+  const webVideoRef = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !webVideoRef.current) return;
+    const el = webVideoRef.current;
+    const onTime = () => setElapsed(el.currentTime);
+    el.addEventListener('timeupdate', onTime);
+    return () => el.removeEventListener('timeupdate', onTime);
+  }, []);
+
   return (
     <View style={StyleSheet.absoluteFill}>
       {/* 영상 재생 */}
-      <Video
-        ref={videoRef}
-        source={SAMPLE_FIRE_VIDEO}
-        style={StyleSheet.absoluteFill}
-        resizeMode={ResizeMode.COVER}
-        isLooping
-        shouldPlay
-        onPlaybackStatusUpdate={(status: AVPlaybackStatus) => {
-          if (status.isLoaded) {
-            setElapsed(status.positionMillis / 1000);
-          }
-        }}
-      />
+      {Platform.OS === 'web' ? (
+        <video
+          ref={webVideoRef}
+          src={SAMPLE_FIRE_VIDEO as unknown as string}
+          autoPlay
+          loop
+          muted
+          playsInline
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'contain',
+            backgroundColor: '#000',
+          }}
+        />
+      ) : (
+        <Video
+          ref={videoRef}
+          source={SAMPLE_FIRE_VIDEO}
+          style={StyleSheet.absoluteFill}
+          resizeMode={ResizeMode.CONTAIN}
+          isLooping
+          shouldPlay
+          onPlaybackStatusUpdate={(status: AVPlaybackStatus) => {
+            if (status.isLoaded) {
+              setElapsed(status.positionMillis / 1000);
+            }
+          }}
+        />
+      )}
 
       {/* HUD 오버레이 (바운딩 박스 제거 — 실제 영상 위에는 덧그리지 않음) */}
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
@@ -1003,7 +1033,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   videoContainer: {
-    ...(Platform.OS === 'web' ? { height: 500, minHeight: 400 } : { flex: 1 }),
+    ...(Platform.OS === 'web' ? { height: 600, minHeight: 400 } : { flex: 1 }),
     backgroundColor: '#1a1a1a',
     margin: 20,
     borderRadius: 12,

@@ -1,7 +1,7 @@
 # Ember Sentinel — 개발 로드맵
 
 > **기준 문서**: [PRD.md](./PRD.md) v1.0
-> **최종 갱신일**: 2026-06-01 <!-- v4.2 T-085 웹 스크롤/잘림 수정 추가, Phase 18 완료 -->
+> **최종 갱신일**: 2026-06-01 <!-- v4.3 T-085 CCTV 영상 웹 object-fit 수정 추가 -->
 > **목표**: 면접 시연 및 포트폴리오 활용을 위한 전체 시스템 개선 실행 계획
 
 ---
@@ -470,12 +470,12 @@ eas secret:create --name EXPO_PUBLIC_LIVEKIT_URL --value "wss://<YOUR_LIVEKIT_UR
 > - T-085 (App.tsx 웹 분기): **축소** → T-082에 통합 (`.catch(() => null)` 1줄 추가)
 > - T-088 (로컬 빌드 테스트): T-084에 통합
 
-|  ID   | 태스크                                                               | 상태 | 비고                                                                                                                                                                                                                          |
-| :---: | -------------------------------------------------------------------- | :--: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| T-082 | LoginScreen 소셜 로그인 동적 require + 웹 분기 + App.tsx .catch 추가 |  ✅  | Google/Kakao 정적 import → `getNativeAuthModules()` 동적 require, 웹에서 소셜 버튼 숨김 + "웹 데모 버전" 배너, App.tsx `getLastNotificationResponseAsync().catch(() => null)`                                                 |
-| T-083 | webAlert.ts 유틸 + 핵심 Alert 웹 호환 교체                           |  ✅  | `confirmAlert()`/`infoAlert()` 유틸(웹: `window.confirm`/`alert`, 네이티브: `Alert.alert`), LoginScreen/HomeScreen/RoomDetailScreen 데모 핵심 흐름 Alert 교체                                                                 |
-| T-084 | vercel.json 생성 + 로컬 검증 + Vercel 배포                           |  ✅  | `expo export --platform web` → Vercel 정적 배포, SPA rewrites, Vercel 프로덕션 배포 완료 → https://ember-sentinel-jeffkms-projects.vercel.app                                                                                 |
-| T-085 | 웹 스크롤 차단 해제 + 화면 잘림 수정 + 데스크톱 maxWidth             |  ✅  | Expo 기본 CSS(`overflow:hidden`) 오버라이드, CCTV/영상 화면 ScrollView 래핑 + 웹 고정 높이, 데스크톱 `maxWidth:480` 중앙 정렬. 수정: App.tsx, CCTVLiveScreen, FireEventVideoScreen, LoginScreen, HomeScreen, RoomDetailScreen |
+|  ID   | 태스크                                                               | 상태 | 비고                                                                                                                                                                                                                                                                                  |
+| :---: | -------------------------------------------------------------------- | :--: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T-082 | LoginScreen 소셜 로그인 동적 require + 웹 분기 + App.tsx .catch 추가 |  ✅  | Google/Kakao 정적 import → `getNativeAuthModules()` 동적 require, 웹에서 소셜 버튼 숨김 + "웹 데모 버전" 배너, App.tsx `getLastNotificationResponseAsync().catch(() => null)`                                                                                                         |
+| T-083 | webAlert.ts 유틸 + 핵심 Alert 웹 호환 교체                           |  ✅  | `confirmAlert()`/`infoAlert()` 유틸(웹: `window.confirm`/`alert`, 네이티브: `Alert.alert`), LoginScreen/HomeScreen/RoomDetailScreen 데모 핵심 흐름 Alert 교체                                                                                                                         |
+| T-084 | vercel.json 생성 + 로컬 검증 + Vercel 배포                           |  ✅  | `expo export --platform web` → Vercel 정적 배포, SPA rewrites, Vercel 프로덕션 배포 완료 → https://ember-sentinel-jeffkms-projects.vercel.app                                                                                                                                         |
+| T-085 | 웹 스크롤 차단 해제 + 화면 잘림 수정 + 데스크톱 maxWidth             |  ✅  | Expo 기본 CSS(`overflow:hidden`) 오버라이드, CCTV/영상 화면 ScrollView 래핑 + 웹 고정 높이, 데스크톱 `maxWidth:480` 중앙 정렬. **v4.3 추가**: DemoVideoFallback 웹에서 HTML `<video>` 직접 렌더링 + `object-fit:contain` 적용 (expo-av ResizeMode 웹 미동작 해결), Vercel 재배포 완료 |
 
 **완료 기준**: iOS Safari에서 배포된 URL 접속 → 데모 모드로 로그인 → 9개 화면 전체 탐색 가능, 네이티브 빌드 회귀 없음
 
