@@ -1,7 +1,7 @@
 # Ember Sentinel — 개발 로드맵
 
 > **기준 문서**: [PRD.md](./PRD.md) v1.0
-> **최종 갱신일**: 2026-05-24 <!-- v3.7 git history 민감정보 정리 -->
+> **최종 갱신일**: 2026-06-01 <!-- v3.8 iOS 시뮬레이터 빌드 배포 + .env.example + README 셋업 가이드 -->
 > **목표**: 면접 시연 및 포트폴리오 활용을 위한 전체 시스템 개선 실행 계획
 
 ---
@@ -24,10 +24,10 @@
 |  12   | 문서 및 README 통일                |    P3    |     3     | ✅ 완료 |    3/3    |
 |  13   | E2E 데모 흐름 보강                 |    P0    |     3     | ✅ 완료 |    3/3    |
 |  14   | LiveKit CCTV 실시간 스트리밍       |    P0    |     4     | ✅ 완료 |    4/4    |
-|  15   | 프로덕션 데모 환경 구축            |    P0    |    16     | 🔄 진행 |   12/16   |
+|  15   | 프로덕션 데모 환경 구축            |    P0    |    16     | 🔄 진행 |   13/16   |
 |  16   | 모바일 앱 UI 개선                  |    P1    |     3     | ✅ 완료 |    3/3    |
 |  17   | 민감 정보 환경변수 분리            |    P0    |     8     | ✅ 완료 |    8/8    |
-|       | **합계**                           |          |  **81**   |         | **77/81** |
+|       | **합계**                           |          |  **81**   |         | **78/81** |
 
 ---
 
@@ -346,12 +346,12 @@
 
 ### 영역 2: EAS Build 실기기 배포 (ember-sentinel 레포)
 
-|  ID   | 태스크                                    | 상태 | 비고                                                                         |
-| :---: | ----------------------------------------- | :--: | ---------------------------------------------------------------------------- |
-| T-059 | eas.json 환경변수 + APK 빌드 설정         |  ✅  | preview 프로필에 `buildType: apk` + `EXPO_PUBLIC_API_BASE_URL` 환경변수 추가 |
-| T-060 | google-services.json 및 EAS Secrets 준비  |  ✅  | Firebase Console에서 다운로드 → 프로젝트 루트 배치 완료                      |
-| T-061 | EAS Build Android APK 빌드 및 실기기 설치 |  ✅  | preview APK 빌드 완료, GitHub Releases 배포 + README 다운로드 섹션 추가      |
-| T-062 | iOS TestFlight 배포 (선택)                |  ⬜  | Apple Developer 계정 필요, P2 우선순위                                       |
+|  ID   | 태스크                                     | 상태 | 비고                                                                                     |
+| :---: | ------------------------------------------ | :--: | ---------------------------------------------------------------------------------------- |
+| T-059 | eas.json 환경변수 + APK 빌드 설정          |  ✅  | preview 프로필에 `buildType: apk` + `EXPO_PUBLIC_API_BASE_URL` 환경변수 추가             |
+| T-060 | google-services.json 및 EAS Secrets 준비   |  ✅  | Firebase Console에서 다운로드 → 프로젝트 루트 배치 완료                                  |
+| T-061 | EAS Build Android APK 빌드 및 실기기 설치  |  ✅  | preview APK 빌드 완료, GitHub Releases 배포 + README 다운로드 섹션 추가                  |
+| T-062 | iOS 시뮬레이터 빌드 배포 (TestFlight 대체) |  ✅  | Apple Developer 미가입 → 시뮬레이터 .app zip 배포로 대체. README에 배포/설치 가이드 추가 |
 
 ### 영역 3: E2E 동작 검증 (크로스 레포)
 

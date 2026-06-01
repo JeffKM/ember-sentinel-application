@@ -258,6 +258,7 @@ graph LR
 - **npm** 10+
 - **Expo CLI** (`npx expo`)
 - Android Studio 또는 Xcode (네이티브 빌드 시)
+- **iOS 빌드 시 추가 필요**: CocoaPods, Xcode 15+, `GoogleService-Info.plist` (Firebase)
 
 ### 모바일 앱 실행 (데모 모드)
 
@@ -294,13 +295,76 @@ cp .env.example .env          # EXPO_PUBLIC_API_BASE_URL 설정
 npm start
 ```
 
+### iOS 로컬 빌드 (필수 사전 설정)
+
+iOS 빌드에는 추가 설정이 필요합니다. 아래 순서를 따라주세요:
+
+```bash
+# 1. 환경변수 설정
+cp .env.example .env
+# .env 파일을 열어 실제 값 입력 (Firebase, Google OAuth, Kakao 등)
+
+# 2. GoogleService-Info.plist 배치 (Firebase 필수)
+#    Firebase Console > 프로젝트 설정 > 내 앱 > iOS (com.embersentinel.app)
+#    → GoogleService-Info.plist 다운로드
+#    → ios/EmberSentinel/ 디렉토리에 복사
+cp ~/Downloads/GoogleService-Info.plist ios/EmberSentinel/
+
+# 3. Expo prebuild (네이티브 프로젝트 생성/갱신)
+npx expo prebuild --clean
+
+# 4. CocoaPods 의존성 설치
+cd ios && pod install && cd ..
+
+# 5. iOS 시뮬레이터에서 실행
+npm run ios                   # expo run:ios
+```
+
+> **주의**: `GoogleService-Info.plist`와 `.env` 파일은 보안상 git에 포함되지 않습니다.
+> 프로젝트 관리자에게 파일을 전달받거나, Firebase/Google/Kakao Console에서 직접 발급받으세요.
+
+### iOS 시뮬레이터 빌드 배포 (테스터용)
+
+Apple Developer 계정 없이 테스터에게 iOS 앱을 전달하는 방법입니다.
+테스터는 git clone, 환경변수 설정, pod install 없이 바로 테스트할 수 있습니다.
+
+**빌드하는 사람 (개발자)**:
+
+```bash
+# 1. 시뮬레이터용 Release 빌드
+npx expo run:ios --configuration Release
+
+# 2. 빌드된 .app 압축
+cd ios/build/Build/Products/Release-iphonesimulator
+zip -r ~/Desktop/EmberSentinel-sim.zip EmberSentinel.app
+
+# 3. EmberSentinel-sim.zip을 테스터에게 전달 (Slack, 카톡, 이메일 등)
+```
+
+**테스트하는 사람 (테스터)**:
+
+```bash
+# 1. 압축 해제
+unzip EmberSentinel-sim.zip
+
+# 2. 시뮬레이터 부팅
+open -a Simulator
+
+# 3. .app 파일을 시뮬레이터 창에 드래그 앤 드롭
+#    또는 CLI로 설치:
+xcrun simctl install booted EmberSentinel.app
+```
+
+> **시뮬레이터 제한사항**: FCM 푸시 알림, 카메라는 실기기 전용이라 동작하지 않습니다.
+> UI 흐름, API 호출, 소셜 로그인, 데모 모드 테스트에는 충분합니다.
+
 ### 플랫폼별 빌드
 
 ```bash
 # Android
 npm run android               # expo run:android
 
-# iOS (첫 빌드 시 cd ios && pod install 필요)
+# iOS (첫 빌드 시 위의 iOS 로컬 빌드 섹션 참고)
 npm run ios                   # expo run:ios
 
 # 웹 (번들링 검증)
