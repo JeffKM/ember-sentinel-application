@@ -347,12 +347,15 @@ zip -r ~/Desktop/EmberSentinel-sim.zip EmberSentinel.app
 # 1. 압축 해제
 unzip EmberSentinel-sim.zip
 
-# 2. 시뮬레이터 부팅
+# 2. macOS 격리 속성 제거 (zip 다운로드 시 자동 부여되어 설치 차단됨)
+xattr -cr EmberSentinel.app
+
+# 3. 시뮬레이터 부팅
 open -a Simulator
 
-# 3. .app 파일을 시뮬레이터 창에 드래그 앤 드롭
-#    또는 CLI로 설치:
+# 4. 앱 설치 및 실행
 xcrun simctl install booted EmberSentinel.app
+xcrun simctl launch booted com.embersentinel.app
 ```
 
 > **시뮬레이터 제한사항**: FCM 푸시 알림, 카메라는 실기기 전용이라 동작하지 않습니다.
