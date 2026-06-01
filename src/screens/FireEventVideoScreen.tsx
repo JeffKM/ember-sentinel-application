@@ -913,7 +913,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   videoContainer: {
-    ...(Platform.OS === 'web' ? { height: 500, minHeight: 400 } : { flex: 1 }),
+    ...(Platform.OS === 'web' ? { height: 600, minHeight: 400 } : { flex: 1 }),
     backgroundColor: '#1a1a1a',
     margin: 20,
     borderRadius: 12,

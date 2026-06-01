@@ -526,13 +526,10 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
           </View>
         )}
 
-        <View style={styles.whiteCard}>
-          <Text style={styles.instructionText}>아래에서 역할을 선택하여 테스트 로그인하세요</Text>
-        </View>
-
         {/* Role-based login section */}
         <View style={styles.roleLoginContainer}>
           <Text style={styles.roleLoginTitle}>역할별 로그인</Text>
+          <Text style={styles.roleLoginSubtitle}>아래에서 역할을 선택하여 테스트 로그인하세요</Text>
 
           <TouchableOpacity
             style={[styles.roleButton, styles.adminButton]}
@@ -706,8 +703,14 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    marginBottom: 16,
+    marginBottom: 4,
     textAlign: 'center',
+  },
+  roleLoginSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.7)',
+    textAlign: 'center',
+    marginBottom: 16,
   },
   roleButton: {
     flexDirection: 'row',

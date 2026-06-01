@@ -409,8 +409,8 @@ const DEMO_CAMERAS: Record<number, Camera[]> = {
       cameraEdgeAlias: '조리실 가스레인지 상단',
       locationFloor: 'B1F',
       roomNumber: 'B103',
-      isFireOccurring: false,
-      fireEventId: null,
+      isFireOccurring: true,
+      fireEventId: 1008,
     },
   ],
   6: [
@@ -440,8 +440,8 @@ const DEMO_CAMERAS: Record<number, Camera[]> = {
       cameraEdgeAlias: '화학과 흄후드 A',
       locationFloor: '3F',
       roomNumber: '312',
-      isFireOccurring: false,
-      fireEventId: null,
+      isFireOccurring: true,
+      fireEventId: 1010,
     },
     {
       cameraId: 14,
@@ -509,9 +509,9 @@ export const DEMO_FIRE_EVENTS: FireEvent[] = [
   {
     id: 1008,
     date: '2026-05-12 20:33:17',
-    cameraId: 1,
-    detectionType: '연기 감지',
-    riskLevel: '보통',
+    cameraId: 10,
+    detectionType: '화염 감지',
+    riskLevel: '높음',
   },
   {
     id: 1009,
@@ -523,7 +523,7 @@ export const DEMO_FIRE_EVENTS: FireEvent[] = [
   {
     id: 1010,
     date: '2026-05-07 16:28:09',
-    cameraId: 9,
+    cameraId: 13,
     detectionType: '화염 감지',
     riskLevel: '매우 높음',
   },

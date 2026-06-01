@@ -35,8 +35,34 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
       min-height: 100vh;
       min-height: 100dvh;
     }
+    video {
+      object-fit: contain !important;
+      width: 100% !important;
+      height: 100% !important;
+    }
   `;
   document.head.appendChild(style);
+
+  // expo-av가 JS로 video 크기를 원본 해상도로 설정하므로 MutationObserver로 강제 오버라이드
+  const forceContain = (el: HTMLVideoElement) => {
+    el.style.setProperty('object-fit', 'contain', 'important');
+    el.style.setProperty('width', '100%', 'important');
+    el.style.setProperty('height', '100%', 'important');
+  };
+  // 이미 존재하는 video 요소에 적용
+  document.querySelectorAll('video').forEach(forceContain);
+  // 새로 추가되는 video 요소 감지
+  const observer = new MutationObserver((mutations) => {
+    for (const m of mutations) {
+      m.addedNodes.forEach((node) => {
+        if (node instanceof HTMLVideoElement) forceContain(node);
+        if (node instanceof HTMLElement) {
+          node.querySelectorAll('video').forEach(forceContain);
+        }
+      });
+    }
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
 }
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
