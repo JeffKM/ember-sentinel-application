@@ -9,7 +9,7 @@
 [![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.5-6DB33F?logo=springboot)](https://spring.io/projects/spring-boot)
 [![YOLOv11](https://img.shields.io/badge/YOLOv11n-NCNN-FF6F00)](https://docs.ultralytics.com/)
 [![Terraform](https://img.shields.io/badge/Terraform-IaC-7B42BC?logo=terraform)](https://www.terraform.io/)
-[![Download APK](https://img.shields.io/badge/Download-APK-green?logo=android)](https://github.com/JeffKM/ember-sentinel/releases/latest)
+[![Download APK](https://img.shields.io/badge/Download-APK-green?logo=android)](https://github.com/JeffKM/ember-sentinel-application/releases/latest)
 
 인하대학교 캡스톤 디자인 프로젝트 — USB 카메라와 Raspberry Pi에서 YOLOv11 모델로 화재/연기를 감지하고, WebRTC 실시간 스트리밍과 FCM 푸시 알림으로 즉시 대응할 수 있는 IoT 시스템입니다.
 
@@ -86,10 +86,10 @@
 
 ## 다운로드
 
-| 플랫폼  | 다운로드                                                                          | 비고                       |
-| ------- | --------------------------------------------------------------------------------- | -------------------------- |
-| Android | [**최신 APK 다운로드**](https://github.com/JeffKM/ember-sentinel/releases/latest) | Android 8.0+ 지원          |
-| iOS     | 개발자에게 시뮬레이터 빌드 요청                                                   | Mac + Xcode Simulator 필요 |
+| 플랫폼  | 다운로드                                                                                      | 비고                       |
+| ------- | --------------------------------------------------------------------------------------------- | -------------------------- |
+| Android | [**최신 APK 다운로드**](https://github.com/JeffKM/ember-sentinel-application/releases/latest) | Android 8.0+ 지원          |
+| iOS     | 개발자에게 시뮬레이터 빌드 요청                                                               | Mac + Xcode Simulator 필요 |
 
 > Android: 설치 시 "출처를 알 수 없는 앱" 허용이 필요합니다.
 
