@@ -17,18 +17,218 @@
 
 ## 목차
 
+- [데모 영상](#데모-영상)
+- [구동 모습](#구동-모습)
+- [다운로드 (Android APK / iOS 시뮬레이터)](#다운로드)
+- [시작하기](#시작하기)
 - [시스템 아키텍처](#시스템-아키텍처)
 - [레포지토리 구성](#레포지토리-구성)
 - [기술 스택](#기술-스택)
-- [다운로드 (Android APK / iOS 시뮬레이터)](#다운로드)
-- [데모 영상](#데모-영상)
-- [구동 모습](#구동-모습)
-- [시작하기](#시작하기)
 - [모바일 앱 상세](#모바일-앱-상세)
 - [아키텍처 문서](#아키텍처-문서)
 - [API 문서](#api-문서)
 - [프로젝트 구조](#프로젝트-구조)
 - [라이선스](#라이선스)
+
+---
+
+## 데모 영상
+
+### E2E 플로우 (실기기 Android APK)
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="docs/demos/fire-alert-demo.gif" width="250" />
+      <br /><b>화재 감지 → 푸시 알림</b>
+      <br /><sub>엣지 YOLO 감지 → FCM 알림 → 화재 상세</sub>
+    </td>
+    <td align="center">
+      <img src="docs/demos/cctv-live-demo.gif" width="250" />
+      <br /><b>실시간 CCTV 스트리밍</b>
+      <br /><sub>LiveKit WebRTC 실시간 영상 수신</sub>
+    </td>
+    <td align="center">
+      <img src="docs/demos/recording-playback-demo.gif" width="250" />
+      <br /><b>녹화 영상 재생</b>
+      <br /><sub>S3 Presigned URL 녹화 재생</sub>
+    </td>
+  </tr>
+</table>
+
+### E2E 동작 검증 시나리오
+
+```
+1. macOS에서 웹캠 시뮬레이터 실행 → YOLO 화재/연기 감지
+2. 실기기(Android)에서 FCM 푸시 알림 수신
+3. 알림 탭 → CCTVLiveScreen에서 LiveKit WebRTC 실시간 영상 확인
+4. 스트리밍 종료 후 FireEventHistory → S3 녹화 영상 재생
+```
+
+> GIF 녹화 방법: [docs/demos/README.md](docs/demos/README.md) 참조
+>
+> ```bash
+> # Android 실기기 미러링 + 녹화 (scrcpy)
+> scrcpy --record demo-raw.mp4
+> # MP4 → GIF 변환
+> ffmpeg -i demo-raw.mp4 -vf "fps=15,scale=300:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 demo.gif
+> ```
+
+---
+
+## 구동 모습
+
+> **준비 중**: 전체 E2E 시연 영상을 촬영하여 업로드할 예정입니다.
+>
+> **포함 예정 내용**: 소셜 로그인 → 홈 대시보드 → 화재 감지 푸시 알림 → CCTV 실시간 스트리밍 → 녹화 영상 재생 → 건물 평면도
+
+---
+
+## 다운로드
+
+| 플랫폼  | 다운로드                                                                          | 비고                       |
+| ------- | --------------------------------------------------------------------------------- | -------------------------- |
+| Android | [**최신 APK 다운로드**](https://github.com/JeffKM/ember-sentinel/releases/latest) | Android 8.0+ 지원          |
+| iOS     | 개발자에게 시뮬레이터 빌드 요청                                                   | Mac + Xcode Simulator 필요 |
+
+> Android: 설치 시 "출처를 알 수 없는 앱" 허용이 필요합니다.
+
+### iOS 시뮬레이터 빌드 테스트 (테스터용)
+
+Apple Developer 계정 없이 iOS 앱을 테스트하는 방법입니다.
+git clone, 환경변수 설정, pod install 없이 바로 테스트할 수 있습니다.
+
+```bash
+# 1. 개발자에게 EmberSentinel-sim.zip을 전달받은 뒤 압축 해제
+unzip EmberSentinel-sim.zip
+
+# 2. macOS 격리 속성 제거 (zip 다운로드 시 자동 부여되어 설치 차단됨)
+xattr -cr EmberSentinel.app
+
+# 3. 시뮬레이터 부팅
+open -a Simulator
+
+# 4. 앱 설치 및 실행
+xcrun simctl install booted EmberSentinel.app
+xcrun simctl launch booted com.embersentinel.app
+```
+
+> **시뮬레이터 제한사항**: FCM 푸시 알림, 카메라는 실기기 전용이라 동작하지 않습니다.
+> UI 흐름, API 호출, 소셜 로그인, 데모 모드 테스트에는 충분합니다.
+
+---
+
+## 시작하기
+
+### 사전 요구사항
+
+- **Node.js** 20+
+- **npm** 10+
+- **Expo CLI** (`npx expo`)
+- Android Studio 또는 Xcode (네이티브 빌드 시)
+- **iOS 빌드 시 추가 필요**: CocoaPods, Xcode 15+, `GoogleService-Info.plist` (Firebase)
+
+### 모바일 앱 실행 (데모 모드)
+
+서버 없이도 전체 화면 흐름을 시연할 수 있습니다:
+
+```bash
+# 1. 레포 클론
+git clone https://github.com/JeffKM/ember-sentinel.git
+cd ember-sentinel
+
+# 2. 의존성 설치
+npm install
+
+# 3. Expo 개발 서버 실행
+npm start
+
+# 4. Expo Go 앱으로 QR 코드 스캔 또는 에뮬레이터에서 실행
+```
+
+> 서버 미연결 시 자동으로 데모 모드가 활성화되어 샘플 데이터(건물 3개, 방 5개, 카메라 8개, 화재 이벤트 10개)로 동작합니다.
+
+### 플랫폼별 빌드
+
+```bash
+# Android
+npm run android               # expo run:android
+
+# iOS (첫 빌드 시 아래 iOS 로컬 빌드 섹션 참고)
+npm run ios                   # expo run:ios
+
+# 웹 (번들링 검증)
+npx expo export --platform web
+
+# EAS 빌드 — 실기기 APK (LiveKit WebRTC 동작에 필수)
+eas build --platform android --profile preview
+
+# EAS 빌드 (프로덕션 — Google Play Store용)
+eas build --platform android --profile production
+```
+
+> LiveKit WebRTC는 네이티브 빌드 필수 — Expo Go에서 동작하지 않습니다.
+> 상세 가이드: [docs/eas-build-guide.md](docs/eas-build-guide.md)
+
+### 전체 시스템 실행 (Docker Compose)
+
+```bash
+# 1. 백엔드 서버 클론 및 실행
+git clone https://github.com/JeffKM/ember-sentinel-server.git
+cd ember-sentinel-server
+cp .env.example .env          # 환경 변수 설정
+docker compose up -d          # PostgreSQL, Redis, LiveKit, MinIO, API 서버 기동
+
+# 2. 모바일 앱에서 서버 URL 설정
+cd ../ember-sentinel
+cp .env.example .env          # EXPO_PUBLIC_API_BASE_URL 설정
+npm start
+```
+
+### iOS 로컬 빌드 (필수 사전 설정)
+
+iOS 빌드에는 추가 설정이 필요합니다. 아래 순서를 따라주세요:
+
+```bash
+# 1. 환경변수 설정
+cp .env.example .env
+# .env 파일을 열어 실제 값 입력 (Firebase, Google OAuth, Kakao 등)
+
+# 2. GoogleService-Info.plist 배치 (Firebase 필수)
+#    Firebase Console > 프로젝트 설정 > 내 앱 > iOS (com.embersentinel.app)
+#    → GoogleService-Info.plist 다운로드
+#    → ios/EmberSentinel/ 디렉토리에 복사
+cp ~/Downloads/GoogleService-Info.plist ios/EmberSentinel/
+
+# 3. Expo prebuild (네이티브 프로젝트 생성/갱신)
+npx expo prebuild --clean
+
+# 4. CocoaPods 의존성 설치
+cd ios && pod install && cd ..
+
+# 5. iOS 시뮬레이터에서 실행
+npm run ios                   # expo run:ios
+```
+
+> **주의**: `GoogleService-Info.plist`와 `.env` 파일은 보안상 git에 포함되지 않습니다.
+> 프로젝트 관리자에게 파일을 전달받거나, Firebase/Google/Kakao Console에서 직접 발급받으세요.
+
+### iOS 시뮬레이터 빌드 생성 (개발자용)
+
+테스터에게 전달할 시뮬레이터 빌드를 생성하는 방법입니다:
+
+```bash
+# 1. 시뮬레이터용 Release 빌드
+npx expo run:ios --configuration Release
+
+# 2. 빌드된 .app 압축
+cd ios/build/Build/Products/Release-iphonesimulator
+zip -r ~/Desktop/EmberSentinel-sim.zip EmberSentinel.app
+
+# 3. EmberSentinel-sim.zip을 테스터에게 전달 (Slack, 카톡, 이메일 등)
+```
+
+> 테스터 설치 방법은 [다운로드 > iOS 시뮬레이터 빌드 테스트](#ios-시뮬레이터-빌드-테스트-테스터용) 참조
 
 ---
 
@@ -185,206 +385,6 @@ graph LR
 | CI/CD       | GitHub Actions + OIDC → ECR → SSM 배포                 |
 | Container   | Docker (멀티스테이지 빌드)                             |
 | PaaS (대안) | Render / Railway 배포 설정 포함                        |
-
----
-
-## 다운로드
-
-| 플랫폼  | 다운로드                                                                          | 비고                       |
-| ------- | --------------------------------------------------------------------------------- | -------------------------- |
-| Android | [**최신 APK 다운로드**](https://github.com/JeffKM/ember-sentinel/releases/latest) | Android 8.0+ 지원          |
-| iOS     | 개발자에게 시뮬레이터 빌드 요청                                                   | Mac + Xcode Simulator 필요 |
-
-> Android: 설치 시 "출처를 알 수 없는 앱" 허용이 필요합니다.
-
-### iOS 시뮬레이터 빌드 테스트 (테스터용)
-
-Apple Developer 계정 없이 iOS 앱을 테스트하는 방법입니다.
-git clone, 환경변수 설정, pod install 없이 바로 테스트할 수 있습니다.
-
-```bash
-# 1. 개발자에게 EmberSentinel-sim.zip을 전달받은 뒤 압축 해제
-unzip EmberSentinel-sim.zip
-
-# 2. macOS 격리 속성 제거 (zip 다운로드 시 자동 부여되어 설치 차단됨)
-xattr -cr EmberSentinel.app
-
-# 3. 시뮬레이터 부팅
-open -a Simulator
-
-# 4. 앱 설치 및 실행
-xcrun simctl install booted EmberSentinel.app
-xcrun simctl launch booted com.embersentinel.app
-```
-
-> **시뮬레이터 제한사항**: FCM 푸시 알림, 카메라는 실기기 전용이라 동작하지 않습니다.
-> UI 흐름, API 호출, 소셜 로그인, 데모 모드 테스트에는 충분합니다.
-
----
-
-## 데모 영상
-
-### E2E 플로우 (실기기 Android APK)
-
-<table>
-  <tr>
-    <td align="center">
-      <img src="docs/demos/fire-alert-demo.gif" width="250" />
-      <br /><b>화재 감지 → 푸시 알림</b>
-      <br /><sub>엣지 YOLO 감지 → FCM 알림 → 화재 상세</sub>
-    </td>
-    <td align="center">
-      <img src="docs/demos/cctv-live-demo.gif" width="250" />
-      <br /><b>실시간 CCTV 스트리밍</b>
-      <br /><sub>LiveKit WebRTC 실시간 영상 수신</sub>
-    </td>
-    <td align="center">
-      <img src="docs/demos/recording-playback-demo.gif" width="250" />
-      <br /><b>녹화 영상 재생</b>
-      <br /><sub>S3 Presigned URL 녹화 재생</sub>
-    </td>
-  </tr>
-</table>
-
-### E2E 동작 검증 시나리오
-
-```
-1. macOS에서 웹캠 시뮬레이터 실행 → YOLO 화재/연기 감지
-2. 실기기(Android)에서 FCM 푸시 알림 수신
-3. 알림 탭 → CCTVLiveScreen에서 LiveKit WebRTC 실시간 영상 확인
-4. 스트리밍 종료 후 FireEventHistory → S3 녹화 영상 재생
-```
-
-> GIF 녹화 방법: [docs/demos/README.md](docs/demos/README.md) 참조
->
-> ```bash
-> # Android 실기기 미러링 + 녹화 (scrcpy)
-> scrcpy --record demo-raw.mp4
-> # MP4 → GIF 변환
-> ffmpeg -i demo-raw.mp4 -vf "fps=15,scale=300:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 demo.gif
-> ```
-
----
-
-## 구동 모습
-
-> **준비 중**: 전체 E2E 시연 영상을 촬영하여 업로드할 예정입니다.
->
-> **포함 예정 내용**: 소셜 로그인 → 홈 대시보드 → 화재 감지 푸시 알림 → CCTV 실시간 스트리밍 → 녹화 영상 재생 → 건물 평면도
-
----
-
-## 시작하기
-
-### 사전 요구사항
-
-- **Node.js** 20+
-- **npm** 10+
-- **Expo CLI** (`npx expo`)
-- Android Studio 또는 Xcode (네이티브 빌드 시)
-- **iOS 빌드 시 추가 필요**: CocoaPods, Xcode 15+, `GoogleService-Info.plist` (Firebase)
-
-### 모바일 앱 실행 (데모 모드)
-
-서버 없이도 전체 화면 흐름을 시연할 수 있습니다:
-
-```bash
-# 1. 레포 클론
-git clone https://github.com/JeffKM/ember-sentinel.git
-cd ember-sentinel
-
-# 2. 의존성 설치
-npm install
-
-# 3. Expo 개발 서버 실행
-npm start
-
-# 4. Expo Go 앱으로 QR 코드 스캔 또는 에뮬레이터에서 실행
-```
-
-> 서버 미연결 시 자동으로 데모 모드가 활성화되어 샘플 데이터(건물 3개, 방 5개, 카메라 8개, 화재 이벤트 10개)로 동작합니다.
-
-### 전체 시스템 실행 (Docker Compose)
-
-```bash
-# 1. 백엔드 서버 클론 및 실행
-git clone https://github.com/JeffKM/ember-sentinel-server.git
-cd ember-sentinel-server
-cp .env.example .env          # 환경 변수 설정
-docker compose up -d          # PostgreSQL, Redis, LiveKit, MinIO, API 서버 기동
-
-# 2. 모바일 앱에서 서버 URL 설정
-cd ../ember-sentinel
-cp .env.example .env          # EXPO_PUBLIC_API_BASE_URL 설정
-npm start
-```
-
-### iOS 로컬 빌드 (필수 사전 설정)
-
-iOS 빌드에는 추가 설정이 필요합니다. 아래 순서를 따라주세요:
-
-```bash
-# 1. 환경변수 설정
-cp .env.example .env
-# .env 파일을 열어 실제 값 입력 (Firebase, Google OAuth, Kakao 등)
-
-# 2. GoogleService-Info.plist 배치 (Firebase 필수)
-#    Firebase Console > 프로젝트 설정 > 내 앱 > iOS (com.embersentinel.app)
-#    → GoogleService-Info.plist 다운로드
-#    → ios/EmberSentinel/ 디렉토리에 복사
-cp ~/Downloads/GoogleService-Info.plist ios/EmberSentinel/
-
-# 3. Expo prebuild (네이티브 프로젝트 생성/갱신)
-npx expo prebuild --clean
-
-# 4. CocoaPods 의존성 설치
-cd ios && pod install && cd ..
-
-# 5. iOS 시뮬레이터에서 실행
-npm run ios                   # expo run:ios
-```
-
-> **주의**: `GoogleService-Info.plist`와 `.env` 파일은 보안상 git에 포함되지 않습니다.
-> 프로젝트 관리자에게 파일을 전달받거나, Firebase/Google/Kakao Console에서 직접 발급받으세요.
-
-### iOS 시뮬레이터 빌드 생성 (개발자용)
-
-테스터에게 전달할 시뮬레이터 빌드를 생성하는 방법입니다:
-
-```bash
-# 1. 시뮬레이터용 Release 빌드
-npx expo run:ios --configuration Release
-
-# 2. 빌드된 .app 압축
-cd ios/build/Build/Products/Release-iphonesimulator
-zip -r ~/Desktop/EmberSentinel-sim.zip EmberSentinel.app
-
-# 3. EmberSentinel-sim.zip을 테스터에게 전달 (Slack, 카톡, 이메일 등)
-```
-
-> 테스터 설치 방법은 [다운로드 > iOS 시뮬레이터 빌드 테스트](#ios-시뮬레이터-빌드-테스트-테스터용) 참조
-
-### 플랫폼별 빌드
-
-```bash
-# Android
-npm run android               # expo run:android
-
-# iOS (첫 빌드 시 위의 iOS 로컬 빌드 섹션 참고)
-npm run ios                   # expo run:ios
-
-# 웹 (번들링 검증)
-npx expo export --platform web
-
-# EAS 빌드 — 실기기 APK (LiveKit WebRTC 동작에 필수)
-eas build --platform android --profile preview
-
-# EAS 빌드 (프로덕션 — Google Play Store용)
-eas build --platform android --profile production
-```
-
-> LiveKit WebRTC는 네이티브 빌드 필수 — Expo Go에서 동작하지 않습니다.
-> 상세 가이드: [docs/eas-build-guide.md](docs/eas-build-guide.md)
 
 ---
 
