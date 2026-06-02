@@ -9,6 +9,7 @@
 [![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.5-6DB33F?logo=springboot)](https://spring.io/projects/spring-boot)
 [![YOLOv11](https://img.shields.io/badge/YOLOv11n-NCNN-FF6F00)](https://docs.ultralytics.com/)
 [![Terraform](https://img.shields.io/badge/Terraform-IaC-7B42BC?logo=terraform)](https://www.terraform.io/)
+[![Vercel](https://img.shields.io/badge/Web_Demo-Vercel-000000?logo=vercel)](https://ember-sentinel-jeffkms-projects.vercel.app)
 [![Download APK](https://img.shields.io/badge/Download-APK-green?logo=android)](https://github.com/JeffKM/ember-sentinel-application/releases/latest)
 
 인하대학교 캡스톤 디자인 프로젝트 — USB 카메라와 Raspberry Pi에서 YOLOv11 모델로 화재/연기를 감지하고, WebRTC 실시간 스트리밍과 FCM 푸시 알림으로 즉시 대응할 수 있는 IoT 시스템입니다.
@@ -19,7 +20,7 @@
 
 - [데모 영상](#데모-영상)
 - [구동 모습](#구동-모습)
-- [다운로드 (Android APK / iOS 시뮬레이터)](#다운로드)
+- [다운로드 (Web / Android APK / iOS 시뮬레이터)](#다운로드)
 - [시작하기](#시작하기)
 - [시스템 아키텍처](#시스템-아키텍처)
 - [레포지토리 구성](#레포지토리-구성)
@@ -86,12 +87,23 @@
 
 ## 다운로드
 
-| 플랫폼  | 다운로드                                                                                      | 비고                       |
-| ------- | --------------------------------------------------------------------------------------------- | -------------------------- |
-| Android | [**최신 APK 다운로드**](https://github.com/JeffKM/ember-sentinel-application/releases/latest) | Android 8.0+ 지원          |
-| iOS     | 개발자에게 시뮬레이터 빌드 요청                                                               | Mac + Xcode Simulator 필요 |
+| 플랫폼  | 다운로드                                                                                      | 비고                        |
+| ------- | --------------------------------------------------------------------------------------------- | --------------------------- |
+| **Web** | [**웹 데모 바로가기**](https://ember-sentinel-jeffkms-projects.vercel.app)                    | 설치 없이 브라우저에서 체험 |
+| Android | [**최신 APK 다운로드**](https://github.com/JeffKM/ember-sentinel-application/releases/latest) | Android 8.0+ 지원           |
+| iOS     | 개발자에게 시뮬레이터 빌드 요청                                                               | Mac + Xcode Simulator 필요  |
 
 > Android: 설치 시 "출처를 알 수 없는 앱" 허용이 필요합니다.
+
+### 웹 데모 테스트 (설치 없이 체험)
+
+앱 설치 없이 브라우저에서 전체 화면 흐름을 체험할 수 있습니다:
+
+1. [**웹 데모 URL**](https://ember-sentinel-jeffkms-projects.vercel.app) 접속 (모바일/데스크톱 모두 지원)
+2. 로그인 화면에서 **"관리자" 데모 로그인** 버튼 탭
+3. 9개 화면 전체 탐색 가능 (홈 → 방 상세 → 화재 상세 → CCTV → 평면도 → 이력 → 영상 재생)
+
+> **웹 버전 제한사항**: 소셜 로그인(Google/Kakao), FCM 푸시 알림, LiveKit WebRTC 실시간 스트리밍은 네이티브 전용 기능으로 웹에서 비활성화됩니다. 데모 모드로 전체 UI 흐름을 체험할 수 있습니다.
 
 ### iOS 시뮬레이터 빌드 테스트 (테스터용)
 
@@ -157,8 +169,11 @@ npm run android               # expo run:android
 # iOS (첫 빌드 시 아래 iOS 로컬 빌드 섹션 참고)
 npm run ios                   # expo run:ios
 
-# 웹 (번들링 검증)
-npx expo export --platform web
+# 웹 (로컬 개발 서버)
+npm run web                   # expo start --web
+
+# 웹 (프로덕션 빌드)
+npx expo export --platform web   # dist/ 폴더에 정적 파일 생성
 
 # EAS 빌드 — 실기기 APK (LiveKit WebRTC 동작에 필수)
 eas build --platform android --profile preview
