@@ -676,7 +676,9 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   expoGoNotice: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#FFF3E0',
+    borderWidth: 1,
+    borderColor: '#FF9800',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 8,
@@ -684,15 +686,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   expoGoNoticeText: {
-    color: '#FFFFFF',
+    color: '#E65100',
     fontSize: 14,
     fontWeight: '600',
     marginBottom: 4,
   },
   expoGoNoticeSubText: {
-    color: '#FFFFFF',
+    color: '#BF360C',
     fontSize: 12,
-    opacity: 0.8,
     textAlign: 'center',
   },
   roleLoginContainer: {
